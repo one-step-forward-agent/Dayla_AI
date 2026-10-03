@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Focus Day</title>
+  <style>
+    :root { --ink:#18221f; --muted:#6b7771; --paper:#f5f1e8; --panel:#fffdf8; --line:#d9d8ce; --accent:#d96c45; --sage:#dfe8d8; --ok:#3f7d4e; --bad:#b4442c; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:radial-gradient(circle at 90% 0%, #e3ebd7 0 18%, transparent 42%), var(--paper); font:15px Georgia, serif; }
+    header { max-width:1180px; margin:auto; padding:34px 28px 18px; display:flex; justify-content:space-between; align-items:end; gap:20px; }
+    h1 { margin:0; font-size:clamp(34px, 6vw, 68px); letter-spacing:-1px; line-height:.9; font-weight:500; }
+    .date { color:var(--muted); font:12px ui-monospace, monospace; text-transform:uppercase; letter-spacing:1px; }
+    .session { margin-top:8px; color:var(--accent); font:12px ui-monospace, monospace; }
+    main { max-width:1180px; margin:auto; padding:20px 28px 60px; display:grid; grid-template-columns:320px 1fr; gap:22px; align-items:start; }
+    .column { display:grid; gap:22px; min-width:0; }
+    .card { background:rgba(255,253,248,.84); border:1px solid var(--line); border-radius:8px; box-shadow:0 10px 35px #81795c16; padding:22px; min-width:0; }
+    h2 { margin:0 0 14px; font-size:25px; font-weight:500; }
+    h3 { margin:0 0 6px; font-size:19px; font-weight:500; }
+    label, .label { display:block; margin:12px 0 6px; font:11px ui-monospace, monospace; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+    input, textarea, select { width:100%; border:1px solid var(--line); border-radius:4px; padding:10px 12px; background:#fffefb; color:var(--ink); font:15px Georgia, serif; }
+    input[type=checkbox] { width:auto; margin:0 6px 0 0; }
+    textarea { min-height:72px; resize:vertical; }
+    button { border:0; border-radius:4px; padding:10px 13px; background:var(--ink); color:#fffdf8; cursor:pointer; font:12px ui-monospace, monospace; text-transform:uppercase; letter-spacing:.6px; }
+    button:hover:not(:disabled) { background:var(--accent); }
+    button:disabled { opacity:.5; cursor:default; }
+    .secondary { background:var(--sage); color:var(--ink); }
+    .danger { background:#f1ddd5; color:var(--bad); }
+    .actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+    .notice { min-height:18px; margin-top:12px; color:var(--muted); font:12px ui-monospace, monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .hint { color:var(--muted); font-size:13px; line-height:1.45; margin:4px 0 0; }
+    .row { display:flex; gap:8px; align-items:center; }
+    .row > * { flex:1; }
+    .check { display:flex; align-items:center; margin:10px 0; font-size:14px; cursor:pointer; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; }
+    .chip { display:flex; align-items:center; border:1px solid var(--line); border-radius:20px; padding:5px 10px; font:12px ui-monospace, monospace; cursor:pointer; background:#fffefb; }
+    .chip:has(input:checked) { background:var(--sage); border-color:#b9c9b0; }
+    .badge { display:inline-block; padding:2px 8px; border-radius:20px; font:11px ui-monospace, monospace; text-transform:uppercase; letter-spacing:.5px; background:var(--sage); }
+    .badge.ok { background:#dcebdc; color:var(--ok); } .badge.bad { background:#f4ddd5; color:var(--bad); } .badge.off { background:#ecebe4; color:var(--muted); }
+    .hidden { display:none !important; }
+    .integrations { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+    .integration { border:1px solid var(--line); border-radius:8px; padding:16px; background:#fffefb; display:flex; flex-direction:column; gap:6px; min-width:0; }
+    .integration .head { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .integration form { border-top:1px dashed var(--line); margin-top:8px; padding-top:4px; }
+    .meta { color:var(--muted); font:12px ui-monospace, monospace; overflow-wrap:anywhere; }
+    .error { color:var(--bad); font:12px ui-monospace, monospace; overflow-wrap:anywhere; }
+    .event { display:grid; grid-template-columns:120px 1fr auto; gap:16px; align-items:start; padding:14px 0; border-top:1px solid var(--line); }
+    .event:first-child { border-top:0; }
+    .time { color:var(--accent); font:13px ui-monospace, monospace; }
+    .event h3 { font-size:18px; margin:0 0 4px; } .event p { margin:0; color:var(--muted); line-height:1.4; font-size:14px; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .event .tools { display:flex; gap:6px; flex-wrap:wrap; justify-content:end; } .event select { width:auto; padding:7px; font-size:13px; }
+    .empty { color:var(--muted); padding:20px 0; }
+    .quick { display:grid; grid-template-columns:2fr 1.4fr .8fr .9fr auto; gap:8px; align-items:end; }
+    .quick label { margin-top:0; }
+    .history { margin:8px 0 0; padding:0; list-style:none; font-size:13px; }
+    .history li { padding:6px 0; border-top:1px solid var(--line); color:var(--muted); white-space:pre-wrap; }
+    .deeplink { display:block; margin-top:10px; padding:10px; border:1px dashed var(--accent); border-radius:6px; font:13px ui-monospace, monospace; overflow-wrap:anywhere; }
+    .deeplink a { color:var(--accent); }
+    .chat { border:1px solid var(--line); border-radius:8px; background:#f9f7ef; overflow:hidden; }
+    .chat-head { padding:18px; border-bottom:1px solid var(--line); } .chat-head p { margin:0; color:var(--muted); font-size:13px; }
+    .messages { min-height:120px; max-height:300px; overflow:auto; padding:16px; }
+    .message { max-width:82%; margin:8px 0; padding:10px 12px; border-radius:8px; white-space:pre-wrap; line-height:1.4; }
+    .message.user { margin-left:auto; background:var(--sage); } .message.assistant { background:#fffdf8; border:1px solid var(--line); } .message.confirm { max-width:94%; }
+    .confirm-actions { display:flex; gap:8px; margin-top:12px; }
+    .chat-form { display:flex; gap:8px; padding:12px; border-top:1px solid var(--line); }
+    .chat-form textarea { min-height:48px; max-height:130px; resize:vertical; } .chat-form button { flex:0 0 auto; align-self:end; }
+    .recording { color:var(--accent); font:12px ui-monospace, monospace; padding:0 12px 10px; }
+    @media (max-width:900px) { main { grid-template-columns:1fr; } .quick { grid-template-columns:1fr 1fr; } .quick .title { grid-column:1 / -1; } }
+    @media (max-width:700px) { header { padding:25px 16px 10px; } main { padding:14px 16px 40px; } .card { padding:18px; } .event { grid-template-columns:1fr; gap:6px; } .event .tools { justify-content:start; } .chat-form { flex-wrap:wrap; } .chat-form textarea { flex-basis:100%; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div><div class="date">Личный планировщик дня</div><h1>Focus Day</h1><div id="sessionState" class="session">Проверяем вход...</div></div>
+    <div id="today" class="date"></div>
+  </header>
+  <main>
+    <div class="column">
+      <aside class="card">
+        <h2>Аккаунт</h2>
+        <div id="guest">
+          <input id="authEmail" type="email" placeholder="Email" autocomplete="email">
+          <label>Пароль</label><input id="authPassword" type="password" placeholder="Минимум 8 символов" autocomplete="current-password">
+          <label>Имя (для регистрации)</label><input id="authName" placeholder="Необязательно">
+          <div class="actions"><button id="login" class="secondary">Войти</button><button id="register">Регистрация</button></div>
+        </div>
+        <div id="member" class="hidden">
+          <p id="account" class="hint"></p>
+          <label for="timezone">Часовой пояс</label><select id="timezone"></select>
+          <div class="actions"><button id="logout" class="secondary">Выйти</button></div>
+        </div>
+        <div id="notice" class="notice"></div>
+      </aside>
+
+      <aside class="card hidden" id="telegramCard">
+        <h2>Telegram и напоминания</h2>
+        <div class="row"><span id="telegramState" class="hint"></span></div>
+        <div class="actions"><button id="telegramLink">Подключить Telegram</button><button id="telegramUnlink" class="danger hidden">Отвязать</button></div>
+        <div id="deepLink" class="deeplink hidden"></div>
+
+        <form id="reminderForm">
+          <label class="check"><input type="checkbox" name="enabled"> Отправлять напоминания</label>
+          <span class="label">Напомнить до начала</span>
+          <div class="chips" id="leadTimes"></div>
+          <div class="row" style="margin-top:8px"><input id="customLead" type="number" min="0" max="10080" placeholder="Своё, мин"><button type="button" id="addLead" class="secondary" style="flex:0 0 auto">Добавить</button></div>
+          <label class="check"><input type="checkbox" name="daily_digest_enabled"> Ежедневная сводка в</label>
+          <input type="time" name="daily_digest_time">
+          <label class="check"><input type="checkbox" name="quiet_hours_enabled"> Тихие часы (сообщения ждут до конца)</label>
+          <div class="row"><input type="time" name="quiet_hours_start"><input type="time" name="quiet_hours_end"></div>
+          <span class="label">Источники (пусто — все)</span>
+          <div class="chips" id="sources"></div>
+          <div class="actions"><button type="submit">Сохранить</button><button type="button" id="testReminder" class="secondary">Тест</button></div>
+        </form>
+        <span class="label">Последние уведомления</span>
+        <ul id="history" class="history"></ul>
+      </aside>
+    </div>
+
+    <div class="column">
+      <section class="card hidden" id="integrationsCard">
+        <h2>Интеграции</h2>
+        <p class="hint">Подключите сервисы, затем нажмите «Синхронизировать» — события и задачи со сроком появятся в списке ниже. События Focus Day можно экспортировать в подключённые сервисы.</p>
+        <div id="integrations" class="integrations" style="margin-top:14px"></div>
+      </section>
+
+      <section class="card hidden" id="eventsCard">
+        <h2>События</h2>
+        <form id="quickEvent" class="quick">
+          <div class="title"><label>Название</label><input name="title" required maxlength="300" placeholder="Созвон с командой"></div>
+          <div><label>Начало</label><input name="start" type="datetime-local" required></div>
+          <div><label>Мин</label><input name="duration" type="number" min="5" value="30"></div>
+          <div><label>Напомнить</label><select name="reminder"><option value="">По настройкам</option><option value="0">В начале</option><option value="5">За 5 мин</option><option value="15">За 15 мин</option><option value="60">За 1 ч</option><option value="1440">За 1 день</option></select></div>
+          <button type="submit">Добавить</button>
+        </form>
+        <div id="events" style="margin-top:16px"></div>
+      </section>
+
+      <section class="card">
+        <div class="chat">
+          <div class="chat-head"><h3>Чат-планировщик</h3><p>Напишите план, задайте вопрос, прикрепите PDF/DOCX или запишите голосовое сообщение.</p></div>
+          <div id="messages" class="messages"><div class="message assistant">Привет. Расскажите, что нужно запланировать.</div></div>
+          <div id="recording" class="recording"></div>
+          <form id="chatForm" class="chat-form"><textarea id="chatText" required placeholder="Например: завтра в 15:00 встреча с командой, напомни за 10 минут"></textarea><button id="attach" type="button" class="secondary" title="Прикрепить файл">Файл</button><input id="fileInput" type="file" accept=".pdf,.docx" hidden><button id="mic" type="button" class="secondary" title="Записать голос">Голос</button><button type="submit">Отправить</button></form>
+        </div>
+      </section>
+    </div>
+  </main>
+<script>
+  const $ = id => document.getElementById(id);
+  const notice = message => $('notice').textContent = message;
+  const LEAD_PRESETS = [0, 5, 10, 15, 30, 60, 120, 1440];
+  const SOURCES = {local:'Focus Day', ai:'Ассистент', google:'Google', apple:'Apple', jira:'Jira', notion:'Notion', obsidian:'Obsidian'};
+  const TIMEZONES = ['Europe/Kaliningrad','Europe/Moscow','Europe/Samara','Asia/Yekaterinburg','Asia/Omsk','Asia/Krasnoyarsk','Asia/Irkutsk','Asia/Yakutsk','Asia/Vladivostok','Asia/Magadan','Asia/Kamchatka','UTC'];
+  // Integration cards re-render after every action, so their status lines live outside the DOM.
+  let currentUser = null, integrations = [], extraLeads = [], integrationMessages = {};
+
+  $('today').textContent = new Intl.DateTimeFormat('ru-RU', {dateStyle:'full'}).format(new Date());
+
+  function el(tag, props = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [key, value] of Object.entries(props)) {
+      if (key === 'class') node.className = value;
+      else if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
+      else if (value !== undefined && value !== null && value !== false) node.setAttribute(key, value === true ? '' : value);
+    }
+    node.append(...children.flat().filter(child => child !== null && child !== undefined && child !== false));
+    return node;
+  }
+
+  // Access tokens are short-lived; on 401 we try the refresh cookie once and repeat the request.
+  async function api(url, options = {}, retry = true) {
+    const response = await fetch(url, {credentials:'same-origin', ...options});
+    if (response.status === 401 && retry && !url.startsWith('/auth/')) {
+      const refreshed = await fetch('/auth/refresh', {method:'POST', credentials:'same-origin'});
+      if (refreshed.ok) return api(url, options, false);
+    }
+    if (response.status === 204) return null;
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const detail = Array.isArray(data.detail) ? data.detail.map(item => item.msg).join('; ') : data.detail;
+      throw Error(detail || 'Ошибка запроса');
+    }
+    return data;
+  }
+  const json = (method, body) => ({method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+
+  const formatLead = minutes => minutes === 0 ? 'в начале' : minutes % 1440 === 0 ? `${minutes / 1440} дн` : minutes % 60 === 0 ? `${minutes / 60} ч` : `${minutes} мин`;
+  const formatDate = value => new Date(value).toLocaleString('ru-RU', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+
+  /* ---------- account ---------- */
+  async function authenticate(path, body) {
+    try { await api(path, json('POST', body)); await loadAccount(); notice(''); }
+    catch (error) { notice(error.message); }
+  }
+  $('login').onclick = () => authenticate('/auth/login', {email:$('authEmail').value, password:$('authPassword').value});
+  $('register').onclick = () => authenticate('/auth/register', {email:$('authEmail').value, password:$('authPassword').value, name:$('authName').value || null, timezone:Intl.DateTimeFormat().resolvedOptions().timeZone});
+  $('logout').onclick = async () => { await api('/auth/logout', {method:'POST'}); window.location.href = '/'; };
+  $('timezone').onchange = async () => { try { currentUser = await api('/api/me', json('PATCH', {timezone:$('timezone').value})); notice('Часовой пояс сохранён'); } catch (error) { notice(error.message); } };
+
+  async function loadAccount() {
+    try { currentUser = await api('/api/me'); } catch { currentUser = null; }
+    const loggedIn = Boolean(currentUser);
+    $('guest').classList.toggle('hidden', loggedIn);
+    $('member').classList.toggle('hidden', !loggedIn);
+    for (const id of ['telegramCard', 'integrationsCard', 'eventsCard']) $(id).classList.toggle('hidden', !loggedIn);
+    if (!loggedIn) { $('sessionState').textContent = 'Вы не вошли'; return; }
+    const identity = currentUser.name ? `${currentUser.name} (${currentUser.email})` : currentUser.email;
+    $('account').textContent = identity;
+    $('sessionState').textContent = 'Вы вошли как ' + identity;
+    const zones = TIMEZONES.includes(currentUser.timezone) || !currentUser.timezone ? TIMEZONES : [currentUser.timezone, ...TIMEZONES];
+    $('timezone').replaceChildren(...zones.map(zone => el('option', {value:zone, selected:zone === currentUser.timezone}, zone)));
+    await Promise.all([refreshIntegrations(), loadTelegram(), loadReminderSettings(), loadHistory()]);
+  }
+
+  /* ---------- integrations ---------- */
+  async function loadIntegrations() {
+    integrations = await api('/api/integrations');
+    $('integrations').replaceChildren(...integrations.map(renderIntegration));
+  }
+  // Events render an "export to" menu from the connected integrations, so they load second.
+  async function refreshIntegrations() { await loadIntegrations(); await loadEvents(); }
+
+  function renderIntegration(item) {
+    const connection = item.connection;
+    const status = !connection ? el('span', {class:'badge off'}, 'не подключено') : connection.status === 'connected' ? el('span', {class:'badge ok'}, 'подключено') : el('span', {class:'badge bad'}, 'ошибка');
+    const result = el('div', {class:'notice'}, integrationMessages[item.slug] || '');
+    const say = text => { integrationMessages[item.slug] = text; result.textContent = text; };
+    const run = async (button, action) => {
+      button.disabled = true; say('...');
+      let text;
+      try { text = await action(); } catch (error) { text = error.message; }
+      say(text);
+      const live = $('integrations').querySelector(`[data-slug="${item.slug}"] .notice`);
+      if (live) live.textContent = text;
+      button.disabled = false;
+    };
+    const form = item.auth_type === 'credentials' ? renderIntegrationForm(item, say) : null;
+    const actions = el('div', {class:'actions'});
+    if (!connection || item.auth_type === 'credentials') {
+      const label = connection ? 'Настройки' : 'Подключить';
+      actions.append(el('button', {class: connection ? 'secondary' : '', onclick: event => {
+        if (form) { form.classList.toggle('hidden'); return; }
+        run(event.currentTarget, async () => { const {authorization_url} = await api(`/api/integrations/${item.slug}/connect`, json('POST', {values:{}})); window.location.href = authorization_url; return 'Переходим в Google...'; });
+      }}, label));
+    }
+    if (connection) {
+      actions.append(
+        el('button', {class:'secondary', onclick: event => run(event.currentTarget, async () => { const r = await api(`/api/integrations/${item.slug}/test`, {method:'POST'}); await loadIntegrations(); return 'OK: ' + r.account; })}, 'Проверить'),
+        el('button', {onclick: event => run(event.currentTarget, async () => { const r = await api(`/api/integrations/${item.slug}/sync`, {method:'POST'}); await refreshIntegrations(); return `Получено ${r.fetched}: новых ${r.created}, обновлено ${r.updated}`; })}, 'Синхронизировать'),
+        el('button', {class:'danger', onclick: event => run(event.currentTarget, async () => {
+          if (!confirm(`Отключить ${item.title}?`)) return '';
+          const purge = confirm('Удалить и импортированные события этого сервиса?');
+          await api(`/api/integrations/${item.slug}?purge=${purge}`, {method:'DELETE'});
+          await refreshIntegrations(); return 'Отключено';
+        })}, 'Отключить'),
+      );
+    }
+    return el('div', {class:'integration', 'data-slug':item.slug},
+      el('div', {class:'head'}, el('h3', {}, item.title), status),
+      el('p', {class:'hint'}, item.description),
+      connection?.account_email && el('div', {class:'meta'}, connection.account_email),
+      connection?.last_sync_at && el('div', {class:'meta'}, 'Синхронизация: ' + formatDate(connection.last_sync_at)),
+      connection?.last_sync_error && el('div', {class:'error'}, connection.last_sync_error),
+      actions, form, result,
+    );
+  }
+
+  function renderIntegrationForm(item, say) {
+    const config = item.connection?.config || {};
+    const form = el('form', {class:'hidden'});
+    for (const field of item.fields) {
+      const id = `${item.slug}-${field.name}`;
+      const value = field.secret ? '' : config[field.name] ?? field.default ?? '';
+      if (field.type === 'checkbox') {
+        form.append(el('label', {class:'check', for:id}, el('input', {id, name:field.name, type:'checkbox', checked:Boolean(value)}), field.label));
+      } else {
+        const placeholder = field.secret && item.connection ? 'Сохранено — оставьте пустым' : field.placeholder;
+        form.append(el('label', {for:id}, field.label + (field.required ? '' : ' (необязательно)')),
+          el('input', {id, name:field.name, type:field.type, value, placeholder, autocomplete:'off'}));
+      }
+      if (field.help) form.append(el('p', {class:'hint'}, field.help));
+    }
+    form.append(el('div', {class:'actions'}, el('button', {type:'submit'}, item.connection ? 'Сохранить' : 'Подключить')));
+    form.onsubmit = async event => {
+      event.preventDefault();
+      const values = {};
+      for (const field of item.fields) {
+        const input = form.elements[field.name];
+        values[field.name] = field.type === 'checkbox' ? input.checked : input.value;
+      }
+      say('Проверяем подключение...');
+      try { const connection = await api(`/api/integrations/${item.slug}/connect`, json('POST', {values})); integrationMessages[item.slug] = 'Подключено: ' + connection.account_email; await refreshIntegrations(); }
+      catch (error) { say(error.message); }
+    };
+    return form;
+  }
+
+  /* ---------- events ---------- */
+  async function loadEvents() {
+    const start = new Date(Date.now() - 86400000).toISOString();
+    const end = new Date(Date.now() + 60 * 86400000).toISOString();
+    const events = await api(`/api/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`);
+    const targets = integrations.filter(item => item.connection && item.supports_push);
+    $('events').replaceChildren(...(events.length ? events.map(event => renderEvent(event, targets)) : [el('div', {class:'empty'}, 'Событий на ближайшие 60 дней нет.')]));
+  }
+
+  function renderEvent(event, targets) {
+    const when = event.all_day ? new Date(event.start_at).toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit'}) + ' · весь день' : formatDate(event.start_at);
+    const status = el('p');
+    const options = targets.filter(target => target.slug !== event.source);
+    const select = el('select', {}, el('option', {value:''}, 'Экспорт в...'), options.map(target => el('option', {value:target.slug}, target.title)));
+    select.onchange = async () => {
+      if (!select.value) return;
+      const slug = select.value; select.disabled = true;
+      try { const link = await api(`/api/integrations/${slug}/export/${event.id}`, {method:'POST'}); status.textContent = 'Экспортировано' + (link.url ? ': ' + link.url : ''); }
+      catch (error) { status.textContent = error.message; }
+      select.value = ''; select.disabled = false;
+    };
+    const remove = el('button', {class:'danger', onclick: async () => { if (confirm('Удалить событие?')) { await api(`/api/events/${event.id}`, {method:'DELETE'}); loadEvents(); } }}, '✕');
+    return el('div', {class:'event'},
+      el('div', {class:'time'}, when),
+      el('div', {},
+        el('h3', {}, event.title),
+        el('p', {}, [SOURCES[event.source] || event.source, event.reminder_minutes !== null ? `🔔 ${formatLead(event.reminder_minutes)}` : null, event.location].filter(Boolean).join(' · ')),
+        event.description && el('p', {}, event.description),
+        status),
+      el('div', {class:'tools'}, options.length ? select : null, remove),
+    );
+  }
+
+  $('quickEvent').onsubmit = async event => {
+    event.preventDefault();
+    const form = event.target, start = new Date(form.start.value);
+    const end = new Date(start.getTime() + Math.max(5, Number(form.duration.value) || 30) * 60000);
+    const body = {title:form.title.value, start_at:start.toISOString(), end_at:end.toISOString(), timezone:currentUser.timezone || 'UTC', reminder_minutes:form.reminder.value === '' ? null : Number(form.reminder.value)};
+    try { await api('/api/events', json('POST', body)); form.reset(); form.duration.value = 30; await loadEvents(); }
+    catch (error) { notice(error.message); }
+  };
+
+  /* ---------- telegram & reminders ---------- */
+  let linkPoll = null;
+  async function loadTelegram() {
+    const status = await api('/api/telegram');
+    $('telegramState').textContent = status.linked ? `Подключён${status.username ? ' @' + status.username : ''} с ${formatDate(status.linked_at)}` : 'Telegram не подключён — напоминания приходят в бота.';
+    $('telegramLink').classList.toggle('hidden', status.linked);
+    $('telegramUnlink').classList.toggle('hidden', !status.linked);
+    $('testReminder').disabled = !status.linked;
+    if (status.linked) { $('deepLink').classList.add('hidden'); clearInterval(linkPoll); linkPoll = null; }
+    return status;
+  }
+  $('telegramLink').onclick = async () => {
+    try {
+      const link = await api('/api/telegram/link', {method:'POST'});
+      const command = `/start ${link.code}`;
+      $('deepLink').replaceChildren(
+        link.deep_link ? el('a', {href:link.deep_link, target:'_blank', rel:'noopener'}, 'Открыть бота в Telegram') : 'Отправьте боту команду:',
+        el('div', {style:'margin-top:6px'}, command),
+        el('div', {class:'hint'}, 'Код действует 15 минут.'));
+      $('deepLink').classList.remove('hidden');
+      clearInterval(linkPoll);
+      const startedAt = Date.now();
+      linkPoll = setInterval(async () => { const s = await loadTelegram(); if (s.linked || Date.now() - startedAt > 15 * 60000) { clearInterval(linkPoll); linkPoll = null; loadHistory(); } }, 3000);
+    } catch (error) { notice(error.message); }
+  };
+  $('telegramUnlink').onclick = async () => { if (confirm('Отвязать Telegram?')) { await api('/api/telegram', {method:'DELETE'}); loadTelegram(); } };
+
+  function renderLeadTimes(selected) {
+    const values = [...new Set([...LEAD_PRESETS, ...extraLeads, ...selected])].sort((a, b) => a - b);
+    $('leadTimes').replaceChildren(...values.map(minutes => el('label', {class:'chip'}, el('input', {type:'checkbox', value:minutes, checked:selected.includes(minutes)}), formatLead(minutes))));
+  }
+  $('addLead').onclick = () => {
+    const minutes = Number($('customLead').value);
+    if (!Number.isInteger(minutes) || minutes < 0 || minutes > 10080) { notice('От 0 до 10080 минут'); return; }
+    const selected = [...$('leadTimes').querySelectorAll('input:checked')].map(input => Number(input.value));
+    extraLeads.push(minutes); renderLeadTimes([...selected, minutes]); $('customLead').value = '';
+  };
+
+  async function loadReminderSettings() {
+    const settings = await api('/api/reminders/settings');
+    const form = $('reminderForm');
+    for (const name of ['enabled', 'daily_digest_enabled', 'quiet_hours_enabled']) form.elements[name].checked = settings[name];
+    for (const name of ['daily_digest_time', 'quiet_hours_start', 'quiet_hours_end']) form.elements[name].value = settings[name].slice(0, 5);
+    renderLeadTimes(settings.lead_times);
+    $('sources').replaceChildren(...Object.entries(SOURCES).map(([value, label]) => el('label', {class:'chip'}, el('input', {type:'checkbox', value, checked:settings.sources.includes(value)}), label)));
+  }
+  $('reminderForm').onsubmit = async event => {
+    event.preventDefault();
+    const form = event.target;
+    const body = {
+      enabled: form.elements.enabled.checked,
+      lead_times: [...$('leadTimes').querySelectorAll('input:checked')].map(input => Number(input.value)),
+      daily_digest_enabled: form.elements.daily_digest_enabled.checked,
+      daily_digest_time: form.elements.daily_digest_time.value,
+      quiet_hours_enabled: form.elements.quiet_hours_enabled.checked,
+      quiet_hours_start: form.elements.quiet_hours_start.value,
+      quiet_hours_end: form.elements.quiet_hours_end.value,
+      sources: [...$('sources').querySelectorAll('input:checked')].map(input => input.value),
+    };
+    try { await api('/api/reminders/settings', json('PUT', body)); notice('Настройки напоминаний сохранены'); }
+    catch (error) { notice(error.message); }
+  };
+  $('testReminder').onclick = async () => {
+    try { await api('/api/reminders/test', {method:'POST'}); notice('Тестовое сообщение поставлено в очередь — бот отправит его в течение минуты'); setTimeout(loadHistory, 1500); }
+    catch (error) { notice(error.message); }
+  };
+  async function loadHistory() {
+    const items = await api('/api/reminders/history');
+    const labels = {pending:'ожидает', sending:'отправляется', sent:'отправлено', failed:'ошибка', expired:'просрочено'};
+    $('history').replaceChildren(...(items.length ? items.slice(0, 6).map(item => el('li', {}, `${formatDate(item.scheduled_for)} · ${labels[item.status] || item.status}\n${item.text.replace(/<[^>]+>/g, '')}`)) : [el('li', {}, 'Пока пусто')]));
+  }
+
+  /* ---------- chat ---------- */
+  function addMessage(text, role) { const message = el('div', {class:'message ' + role}, text); $('messages').appendChild(message); $('messages').scrollTop = $('messages').scrollHeight; }
+  function askForConfirmation(result) {
+    if (!result.proposed_events?.length) { addMessage(result.answer || 'Новых событий не найдено.', 'assistant'); return; }
+    const yes = el('button', {}, 'Да, добавить'), no = el('button', {class:'secondary'}, 'Нет');
+    const message = el('div', {class:'message assistant confirm'},
+      (result.answer || 'Я распознал следующие события:') + '\n\n' + result.proposed_events.map(item => `• ${item.title} — ${new Date(item.starts_at).toLocaleString()}`).join('\n') + '\n\nДобавить их в календарь?',
+      el('div', {class:'confirm-actions'}, yes, no));
+    $('messages').appendChild(message); $('messages').scrollTop = $('messages').scrollHeight;
+    yes.onclick = async () => {
+      yes.disabled = no.disabled = true;
+      try { await api('/api/assistant/confirm', json('POST', {events:result.proposed_events, timezone:currentUser?.timezone || 'Europe/Moscow'})); message.append('\nСобытия добавлены.'); loadEvents(); }
+      catch (error) { message.append('\n' + error.message); }
+    };
+    no.onclick = () => { yes.disabled = no.disabled = true; message.append('\nДобавление отменено.'); };
+  }
+  $('chatForm').onsubmit = async event => {
+    event.preventDefault();
+    const text = $('chatText').value.trim(); if (!text) return;
+    addMessage(text, 'user'); $('chatText').value = '';
+    try { askForConfirmation(await api('/api/assistant/message', json('POST', {text, timezone:currentUser?.timezone || 'Europe/Moscow'}))); }
+    catch (error) { addMessage(error.message, 'assistant'); }
+  };
+  $('attach').onclick = () => $('fileInput').click();
+  $('fileInput').onchange = async () => {
+    const file = $('fileInput').files[0]; if (!file) return;
+    addMessage('Прикреплён файл: ' + file.name, 'user');
+    const form = new FormData(); form.append('file', file);
+    try {
+      const result = await api('/api/assistant/file', {method:'POST', body:form});
+      const prompt = `Проанализируй прикреплённый файл «${result.filename}» и извлеки из него важные события, даты, дедлайны и задачи.\n\nТекст файла:\n${result.text.slice(0, 50000)}`;
+      askForConfirmation(await api('/api/assistant/message', json('POST', {text:prompt, timezone:currentUser?.timezone || 'Europe/Moscow'})));
+    } catch (error) { addMessage(error.message, 'assistant'); }
+    $('fileInput').value = '';
+  };
+  let recorder, audioChunks = [];
+  $('mic').onclick = async () => {
+    try {
+      if (recorder?.state === 'recording') { recorder.stop(); return; }
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      recorder = new MediaRecorder(stream); audioChunks = [];
+      recorder.ondataavailable = event => audioChunks.push(event.data);
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        $('mic').textContent = 'Голос'; $('recording').textContent = 'Распознаём голос...';
+        const form = new FormData(); form.append('audio', new Blob(audioChunks, {type:recorder.mimeType}), 'voice.webm');
+        try { const result = await api('/api/assistant/transcribe', {method:'POST', body:form}); $('chatText').value = result.text; $('recording').textContent = 'Текст готов. Нажмите «Отправить».'; }
+        catch (error) { $('recording').textContent = error.message; }
+      };
+      recorder.start(); $('mic').textContent = 'Остановить'; $('recording').textContent = 'Идёт запись...';
+    } catch { $('recording').textContent = 'Нужно разрешить доступ к микрофону'; }
+  };
+
+  loadAccount().then(() => { if (new URLSearchParams(location.search).get('connected') === 'google') notice('Google Calendar подключён'); });
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# Secrets — every service reads its own .env; only the .env.example templates are committed
+.env
+.env.*
+!.env.example
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Node
+node_modules/
+dist/
+
+# Runtime data
+backend/storage/
+*.log
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
