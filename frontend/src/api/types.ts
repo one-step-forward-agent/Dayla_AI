@@ -19,6 +19,18 @@ export interface TokenResponse {
 export type Priority = "low" | "medium" | "high" | "urgent";
 export type Source = "local" | "ai" | "google" | "apple" | "jira" | "notion" | "obsidian";
 
+export interface Calendar {
+  id: number;
+  user_id: number;
+  name: string;
+  provider: string;
+  integration_id: number | null;
+  description: string | null;
+  timezone: string;
+  external_id: string | null;
+  is_active: boolean;
+}
+
 export interface CalendarEvent {
   id: number;
   calendar_id: number;
@@ -49,6 +61,43 @@ export interface EventCreate {
   location?: string | null;
   all_day?: boolean;
   reminder_minutes?: number | null;
+}
+
+export interface EventFile {
+  id: number;
+  filename: string;
+  size: number;
+  mime_type: string;
+}
+
+export interface EventLink {
+  id: number;
+  event_id: number;
+  integration_id: number;
+  external_id: string;
+  url: string | null;
+  provider: string;
+}
+
+/** An event suggested by the assistant; not saved until confirmed. */
+export interface ProposedEvent {
+  title: string;
+  starts_at: string;
+  ends_at?: string | null;
+  description?: string | null;
+  location?: string | null;
+  reminder_minutes?: number | null;
+}
+
+export interface AssistantResponse {
+  answer: string | null;
+  created_events: CalendarEvent[];
+  proposed_events: ProposedEvent[];
+}
+
+export interface SearchResponse {
+  filters: { date_from?: string; date_to?: string; keywords?: string[] };
+  events: CalendarEvent[];
 }
 
 export interface IntegrationField {
@@ -98,6 +147,16 @@ export interface ReminderSettings {
   quiet_hours_start: string;
   quiet_hours_end: string;
   sources: Source[];
+}
+
+export interface ReminderHistoryItem {
+  id: number;
+  kind: string;
+  status: string;
+  text: string;
+  scheduled_for: string;
+  sent_at: string | null;
+  error: string | null;
 }
 
 export interface TelegramStatus {

@@ -8,7 +8,7 @@ import httpx
 from icalendar import Calendar as ICalendar
 from icalendar import Event as IEvent
 
-from app.services.integrations.base import ConfigField, EventPayload, IntegrationError, IntegrationProvider, PushResult, RemoteItem
+from app.services.integrations.base import GUARDED_HOOKS, ConfigField, EventPayload, IntegrationError, IntegrationProvider, PushResult, RemoteItem
 
 NS = {"d": "DAV:", "c": "urn:ietf:params:xml:ns:caldav"}
 
@@ -52,13 +52,14 @@ class AppleCalendarIntegration(IntegrationProvider):
             auth=(self.config["username"], self.secrets["app_password"]),
             timeout=20,
             follow_redirects=True,
+            event_hooks=GUARDED_HOOKS,
             headers={"Content-Type": "application/xml; charset=utf-8"},
         )
 
     async def _multistatus(self, client: httpx.AsyncClient, method: str, url: str, body: str, depth: str) -> tuple[str, ElementTree.Element]:
         try:
             response = await client.request(method, url, content=body, headers={"Depth": depth})
-        except httpx.HTTPError as error:
+        except (httpx.HTTPError, httpx.InvalidURL) as error:
             raise IntegrationError("CalDAV сервер недоступен") from error
         if response.status_code == 401:
             raise IntegrationError("Неверный Apple ID или пароль приложения")
@@ -176,7 +177,7 @@ class AppleCalendarIntegration(IntegrationProvider):
                     content=calendar.to_ical(),
                     headers={"Content-Type": "text/calendar; charset=utf-8", "If-None-Match": "*"},
                 )
-            except httpx.HTTPError as error:
+            except (httpx.HTTPError, httpx.InvalidURL) as error:
                 raise IntegrationError("CalDAV сервер недоступен") from error
         if response.status_code not in (200, 201, 204):
             raise IntegrationError(f"CalDAV сервер отклонил событие ({response.status_code})")

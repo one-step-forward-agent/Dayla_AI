@@ -1,0 +1,12 @@
+# Amvera project "bot": aiogram long polling, no inbound HTTP. See ../amvera.md.
+meta:
+  environment: docker
+  toolchain:
+    name: docker
+    version: latest
+build:
+  dockerfile: Dockerfile
+  skip: false
+run:
+  persistenceMount: /data
+  containerPort: 80

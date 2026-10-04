@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     SBER_SCOPE: str | None = None
     GIGACHAT_MODEL: str = "GigaChat"
     GIGACHAT_SCOPE: str = "GIGACHAT_API_PERS"
+    # PEM with the Russian Trusted Root CA; when empty GigaChat TLS certificates are not verified.
+    GIGACHAT_CA_BUNDLE: str = ""
     REMINDER_MINUTES: int = 30
     TIMEZONE: str = "Europe/Moscow"
     # Focus Day backend: account linking, reminder settings and the notification outbox.

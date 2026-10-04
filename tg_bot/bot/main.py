@@ -1,4 +1,5 @@
 import asyncio
+import html
 import logging
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -33,7 +34,7 @@ async def reminder_worker(bot: Bot) -> None:
 				starts_at = event.starts_at.astimezone(user_timezone)
 				await bot.send_message(
 					event.user_id,
-					f"Напоминание: {event.title}\nНачало: {starts_at:%d.%m.%Y %H:%M}",
+					f"Напоминание: {html.escape(event.title)}\nНачало: {starts_at:%d.%m.%Y %H:%M}",
 				)
 				if event.recurrence_rule:
 					next_starts_at = rrulestr(

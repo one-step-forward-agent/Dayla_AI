@@ -2,6 +2,8 @@ import base64
 import json
 import logging
 import re
+import ssl
+from functools import cache
 from uuid import uuid4
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -11,6 +13,20 @@ import aiohttp
 from bot.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+@cache
+def _ssl_context() -> ssl.SSLContext | bool:
+    """GigaChat certificates are issued by the Russian Trusted Root CA, which is not in the default trust store.
+
+    With GIGACHAT_CA_BUNDLE pointing at that CA (PEM) the certificate is verified; without it verification is skipped.
+    """
+    if not settings.GIGACHAT_CA_BUNDLE:
+        logger.warning("GIGACHAT_CA_BUNDLE is not set; GigaChat TLS certificates are not verified")
+        return False
+    context = ssl.create_default_context()
+    context.load_verify_locations(settings.GIGACHAT_CA_BUNDLE)
+    return context
 
 
 def parse_events_response(content: str) -> list[dict]:
@@ -107,7 +123,7 @@ class GigaChatClient:
             self.token_url,
             headers=headers,
             data={"scope": settings.gigachat_scope},
-            ssl=False,
+            ssl=_ssl_context(),
         ) as response:
             if response.status >= 400:
                 error_body = await response.text()
@@ -221,7 +237,7 @@ class GigaChatClient:
                 "temperature": 0.1,
             }
             async with session.post(
-                self.chat_url, headers=headers, json=payload, ssl=False
+                self.chat_url, headers=headers, json=payload, ssl=_ssl_context()
             ) as response:
                 response.raise_for_status()
                 result = await response.json()
@@ -254,7 +270,7 @@ class GigaChatClient:
                 "max_tokens": 180,
             }
             async with session.post(
-                self.chat_url, headers=headers, json=payload, ssl=False
+                self.chat_url, headers=headers, json=payload, ssl=_ssl_context()
             ) as response:
                 response.raise_for_status()
                 result = await response.json()

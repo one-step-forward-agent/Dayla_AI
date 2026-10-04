@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from app.services.integrations.base import ConfigField, EventPayload, IntegrationError, IntegrationProvider, PushResult, RemoteItem
+from app.services.integrations.base import GUARDED_HOOKS, ConfigField, EventPayload, IntegrationError, IntegrationProvider, PushResult, RemoteItem
 
 # "- [ ] Title 📅 2026-10-05 ⏰ 14:30" (Tasks plugin) or "- [ ] Title [due:: 2026-10-05]" (Dataview).
 TASK_LINE = re.compile(r"^\s*[-*]\s+\[(?P<done>[ xX])\]\s+(?P<body>.+?)\s*$")
@@ -62,9 +62,9 @@ class ObsidianIntegration(IntegrationProvider):
     async def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
         headers = {"Authorization": f"Bearer {self.secrets['api_key']}", **kwargs.pop("headers", {})}
         try:
-            async with httpx.AsyncClient(timeout=15, verify=bool(self.config.get("verify_ssl"))) as client:
+            async with httpx.AsyncClient(timeout=15, verify=bool(self.config.get("verify_ssl")), event_hooks=GUARDED_HOOKS) as client:
                 response = await client.request(method, f"{self.config['base_url'].rstrip('/')}{path}", headers=headers, **kwargs)
-        except httpx.HTTPError as error:
+        except (httpx.HTTPError, httpx.InvalidURL) as error:
             raise IntegrationError("Obsidian Local REST API недоступен — Obsidian запущен и адрес доступен с сервера?") from error
         if response.status_code in (401, 403):
             raise IntegrationError("Obsidian отклонил API key")

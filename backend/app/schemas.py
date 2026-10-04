@@ -106,7 +106,7 @@ class IntegrationRead(BaseModel):
 
 
 class IntegrationConnect(BaseModel):
-    values: dict = Field(default_factory=dict)
+    values: dict = Field(default_factory=dict, max_length=20)
 
 
 class EventLinkRead(BaseModel):
@@ -126,7 +126,7 @@ class EventCreate(BaseModel):
     end_at: datetime
     timezone: str = "UTC"
     priority: Priority = Priority.MEDIUM
-    location: str | None = None
+    location: str | None = Field(default=None, max_length=500)
     all_day: bool = False
     reminder_minutes: int | None = Field(default=None, ge=0, le=10080)
 
@@ -138,7 +138,7 @@ class EventUpdate(BaseModel):
     end_at: datetime | None = None
     timezone: str | None = None
     priority: Priority | None = None
-    location: str | None = None
+    location: str | None = Field(default=None, max_length=500)
     all_day: bool | None = None
     reminder_minutes: int | None = Field(default=None, ge=0, le=10080)
 
@@ -166,7 +166,7 @@ class AssistantResponse(BaseModel):
 
 
 class AssistantConfirmation(BaseModel):
-    events: list[dict]
+    events: list[dict] = Field(max_length=50)
     timezone: str = "Europe/Moscow"
 
 

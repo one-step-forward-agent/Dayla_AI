@@ -1,9 +1,16 @@
 import type {
+  AssistantResponse,
+  Calendar,
   CalendarEvent,
   EventCreate,
+  EventFile,
+  EventLink,
   Integration,
   IntegrationConnection,
+  ProposedEvent,
+  ReminderHistoryItem,
   ReminderSettings,
+  SearchResponse,
   SyncResult,
   TelegramLink,
   TelegramStatus,
@@ -20,23 +27,48 @@ export class ApiError extends Error {
   }
 }
 
+// Called when the session can't be refreshed, so the app can show the login page.
+let unauthorizedHandler: () => void = () => {};
+export const onUnauthorized = (handler: () => void) => {
+  unauthorizedHandler = handler;
+};
+
+// Several requests can hit 401 at once; they share one refresh call.
+let refreshing: Promise<boolean> | null = null;
+function refreshSession(): Promise<boolean> {
+  refreshing ??= fetch("/auth/refresh", { method: "POST", credentials: "same-origin" })
+    .then((response) => response.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
+
 // Auth uses the backend's httpOnly cookies (same origin via the Vite/nginx proxy),
 // so no token handling is needed here: on 401 we refresh once and retry.
-async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
+async function send(path: string, init: RequestInit = {}, retry = true): Promise<Response> {
   const response = await fetch(path, { credentials: "same-origin", ...init });
-  if (response.status === 401 && retry && !path.startsWith("/auth/")) {
-    const refreshed = await fetch("/auth/refresh", { method: "POST", credentials: "same-origin" });
-    if (refreshed.ok) return request<T>(path, init, false);
+  if (response.status === 401 && !path.startsWith("/auth/")) {
+    if (retry && (await refreshSession())) return send(path, init, false);
+    unauthorizedHandler();
   }
-  if (response.status === 204) return undefined as T;
+  return response;
+}
+
+async function errorFrom(response: Response): Promise<ApiError> {
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const detail = Array.isArray(data.detail)
-      ? data.detail.map((item: { msg: string }) => item.msg).join("; ")
-      : data.detail;
-    throw new ApiError(response.status, detail || response.statusText);
-  }
-  return data as T;
+  const detail = Array.isArray(data.detail)
+    ? data.detail.map((item: { msg: string }) => item.msg).join("; ")
+    : data.detail;
+  return new ApiError(response.status, detail || response.statusText || "Ошибка запроса");
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await send(path, init);
+  if (!response.ok) throw await errorFrom(response);
+  if (response.status === 204) return undefined as T;
+  return (await response.json().catch(() => undefined)) as T;
 }
 
 const json = (method: string, body?: unknown): RequestInit => ({
@@ -45,25 +77,62 @@ const json = (method: string, body?: unknown): RequestInit => ({
   body: body === undefined ? undefined : JSON.stringify(body),
 });
 
+const upload = (field: string, file: Blob, filename?: string): RequestInit => {
+  const form = new FormData();
+  form.append(field, file, filename ?? (file instanceof File ? file.name : "upload"));
+  return { method: "POST", body: form };
+};
+
+const timezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 export const api = {
   auth: {
     register: (body: { email: string; password: string; name?: string | null; timezone?: string }) =>
       request<TokenResponse>("/auth/register", json("POST", body)),
     login: (email: string, password: string) => request<TokenResponse>("/auth/login", json("POST", { email, password })),
     logout: () => request<{ status: string }>("/auth/logout", { method: "POST" }),
+    // Ends the sessions on every device.
+    logoutAll: () => request<{ status: string }>("/auth/logout-all", { method: "POST" }),
   },
   me: {
     get: () => request<User>("/api/me"),
     update: (body: { name?: string | null; timezone?: string }) => request<User>("/api/me", json("PATCH", body)),
+  },
+  calendars: {
+    list: () => request<Calendar[]>("/api/calendars"),
+    create: (body: { name: string; description?: string | null; timezone?: string }) =>
+      request<Calendar>("/api/calendars", json("POST", { provider: "local", ...body })),
+    /** Download all events as an .ics file. */
+    exportIcs: async () => {
+      const response = await send("/api/calendar/export.ics");
+      if (!response.ok) throw await errorFrom(response);
+      return response.blob();
+    },
   },
   events: {
     list: (params: { start?: string; end?: string; limit?: number } = {}) => {
       const query = new URLSearchParams(Object.entries(params).map(([key, value]) => [key, String(value)]));
       return request<CalendarEvent[]>(`/api/events?${query}`);
     },
+    get: (id: number) => request<CalendarEvent>(`/api/events/${id}`),
     create: (body: EventCreate) => request<CalendarEvent>("/api/events", json("POST", body)),
     update: (id: number, body: Partial<EventCreate>) => request<CalendarEvent>(`/api/events/${id}`, json("PUT", body)),
     remove: (id: number) => request<void>(`/api/events/${id}`, { method: "DELETE" }),
+    syncGoogle: (id: number) => request<CalendarEvent>(`/api/events/${id}/sync/google`, { method: "POST" }),
+    links: (id: number) => request<EventLink[]>(`/api/events/${id}/links`),
+    files: (id: number) => request<EventFile[]>(`/api/events/${id}/files`),
+    uploadFile: (id: number, file: File) => request<{ id: number; filename: string; size: number }>(`/api/events/${id}/files`, upload("file", file)),
+  },
+  files: {
+    remove: (id: number) => request<void>(`/api/files/${id}`, { method: "DELETE" }),
+    text: (id: number) => request<{ file_id: number; text: string }>(`/api/files/${id}/text`, { method: "POST" }),
+  },
+  assistant: {
+    message: (text: string) => request<AssistantResponse>("/api/assistant/message", json("POST", { text, timezone: timezone() })),
+    confirm: (events: ProposedEvent[]) => request<AssistantResponse>("/api/assistant/confirm", json("POST", { events, timezone: timezone() })),
+    search: (text: string) => request<SearchResponse>("/api/assistant/search", json("POST", { text, timezone: timezone() })),
+    transcribe: (audio: Blob) => request<{ text: string }>("/api/assistant/transcribe", upload("audio", audio, "voice.webm")),
+    readFile: (file: File) => request<{ filename: string; text: string }>("/api/assistant/file", upload("file", file)),
   },
   integrations: {
     list: () => request<Integration[]>("/api/integrations"),
@@ -72,13 +141,14 @@ export const api = {
       request<IntegrationConnection | { authorization_url: string }>(`/api/integrations/${slug}/connect`, json("POST", { values })),
     test: (slug: string) => request<{ status: string; account: string }>(`/api/integrations/${slug}/test`, { method: "POST" }),
     sync: (slug: string) => request<SyncResult>(`/api/integrations/${slug}/sync`, { method: "POST" }),
-    exportEvent: (slug: string, eventId: number) => request<{ url: string | null }>(`/api/integrations/${slug}/export/${eventId}`, { method: "POST" }),
+    exportEvent: (slug: string, eventId: number) => request<EventLink>(`/api/integrations/${slug}/export/${eventId}`, { method: "POST" }),
     disconnect: (slug: string, purge = false) => request<void>(`/api/integrations/${slug}?purge=${purge}`, { method: "DELETE" }),
   },
   reminders: {
     get: () => request<ReminderSettings>("/api/reminders/settings"),
     update: (body: Partial<ReminderSettings>) => request<ReminderSettings>("/api/reminders/settings", json("PUT", body)),
     test: () => request<{ id: number; status: string }>("/api/reminders/test", { method: "POST" }),
+    history: () => request<ReminderHistoryItem[]>("/api/reminders/history"),
   },
   telegram: {
     status: () => request<TelegramStatus>("/api/telegram"),

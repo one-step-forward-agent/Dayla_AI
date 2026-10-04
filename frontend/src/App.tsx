@@ -1,120 +1,71 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { api, ApiError } from "./api/client";
-import type { CalendarEvent, Integration, TelegramStatus, User } from "./api/types";
+import type { ReactNode } from "react";
+import { AuthProvider, useAuth } from "./auth";
+import { Layout } from "./components/Layout";
+import { Empty, Loading, ToastProvider } from "./components/ui";
+import { AssistantPage } from "./pages/Assistant";
+import { AuthPage } from "./pages/Auth";
+import { CalendarPage } from "./pages/CalendarPage";
+import { EventPage, NewEventPage } from "./pages/EventPage";
+import { IntegrationsPage } from "./pages/Integrations";
+import { SettingsPage } from "./pages/Settings";
+import { TodayPage } from "./pages/Today";
+import { Link, Redirect, match, useLocation, useTitle } from "./router";
 
-// Starting point only: shows that auth, events, integrations and Telegram status are wired.
-// Replace with real pages/routing as the UI grows.
-export default function App() {
-  const [user, setUser] = useState<User | null | undefined>(undefined);
+const PUBLIC_PATHS = new Set(["/login", "/register"]);
 
-  const loadUser = useCallback(async () => {
-    try {
-      setUser(await api.me.get());
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) setUser(null);
-      else throw error;
-    }
-  }, []);
+/** Pages for a logged-in user; the first matching pattern wins. */
+const ROUTES: [string, (params: Record<string, string>) => ReactNode][] = [
+  ["/", () => <TodayPage />],
+  ["/calendar", () => <CalendarPage />],
+  ["/events/new", () => <NewEventPage />],
+  ["/events/:id", ({ id }) => (/^\d+$/.test(id) ? <EventPage key={id} id={Number(id)} /> : <NotFound />)],
+  ["/assistant", () => <AssistantPage />],
+  ["/integrations", () => <IntegrationsPage />],
+  ["/settings", () => <SettingsPage />],
+];
 
-  useEffect(() => {
-    loadUser();
-  }, [loadUser]);
+function Routes() {
+  const { user } = useAuth();
+  const { path, query } = useLocation();
 
-  if (user === undefined) return <main className="page">Загрузка…</main>;
+  if (user === undefined) return <Loading label="Focus Day" />;
+
+  if (PUBLIC_PATHS.has(path)) {
+    return user ? <Redirect to="/" /> : <AuthPage key={path} mode={path === "/login" ? "login" : "register"} />;
+  }
+  if (!user) {
+    const here = path + (query.toString() ? `?${query}` : "");
+    return <Redirect to={here === "/" ? "/login" : `/login?next=${encodeURIComponent(here)}`} />;
+  }
+
+  for (const [pattern, render] of ROUTES) {
+    const params = match(pattern, path);
+    if (params) return <Layout>{render(params)}</Layout>;
+  }
   return (
-    <main className="page">
-      <header>
-        <h1>Focus Day</h1>
-        {user && (
-          <div className="session">
-            {user.name ?? user.email}
-            <button className="link" onClick={() => api.auth.logout().then(() => setUser(null))}>
-              Выйти
-            </button>
-          </div>
-        )}
-      </header>
-      {user ? <Dashboard /> : <AuthForm onDone={loadUser} />}
-    </main>
+    <Layout>
+      <NotFound />
+    </Layout>
   );
 }
 
-function AuthForm({ onDone }: { onDone: () => void }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-
-  const submit = (mode: "login" | "register") => async (event?: FormEvent) => {
-    event?.preventDefault();
-    setError("");
-    try {
-      if (mode === "login") await api.auth.login(email, password);
-      else await api.auth.register({ email, password, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
-      onDone();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    }
-  };
-
+function NotFound() {
+  useTitle("Не найдено");
   return (
-    <form className="card auth" onSubmit={submit("login")}>
-      <h2>Вход</h2>
-      <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      <input type="password" placeholder="Пароль (минимум 8 символов)" value={password} onChange={(e) => setPassword(e.target.value)} required />
-      <div className="actions">
-        <button type="submit">Войти</button>
-        <button type="button" className="secondary" onClick={() => submit("register")()}>
-          Регистрация
-        </button>
-      </div>
-      {error && <p className="error">{error}</p>}
-    </form>
-  );
-}
-
-function Dashboard() {
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [integrations, setIntegrations] = useState<Integration[]>([]);
-  const [telegram, setTelegram] = useState<TelegramStatus | null>(null);
-
-  useEffect(() => {
-    const start = new Date().toISOString();
-    const end = new Date(Date.now() + 30 * 86_400_000).toISOString();
-    api.events.list({ start, end }).then(setEvents);
-    api.integrations.list().then(setIntegrations);
-    api.telegram.status().then(setTelegram);
-  }, []);
-
-  return (
-    <div className="grid">
-      <section className="card">
-        <h2>Ближайшие события</h2>
-        {events.length === 0 && <p className="muted">Событий на 30 дней нет.</p>}
-        <ul className="list">
-          {events.map((event) => (
-            <li key={event.id}>
-              <time>{new Date(event.start_at).toLocaleString("ru-RU", { dateStyle: "short", timeStyle: event.all_day ? undefined : "short" })}</time>
-              <span>{event.title}</span>
-              <small className="muted">{event.source}</small>
-            </li>
-          ))}
-        </ul>
-      </section>
-      <section className="card">
-        <h2>Интеграции</h2>
-        <ul className="list">
-          {integrations.map((item) => (
-            <li key={item.slug}>
-              <span>{item.title}</span>
-              <small className={item.connection?.status === "connected" ? "ok" : "muted"}>
-                {item.connection ? item.connection.status : "не подключено"}
-              </small>
-            </li>
-          ))}
-        </ul>
-        <h2>Telegram</h2>
-        <p className="muted">{telegram?.linked ? `Подключён @${telegram.username ?? ""}` : "Не подключён"}</p>
-      </section>
+    <div className="page">
+      <Empty icon="search" title="Страница не найдена">
+        <Link to="/">На главную</Link>
+      </Empty>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ToastProvider>
+      <AuthProvider>
+        <Routes />
+      </AuthProvider>
+    </ToastProvider>
   );
 }

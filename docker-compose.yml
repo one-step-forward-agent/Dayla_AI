@@ -26,6 +26,8 @@ services:
     env_file:
       - ./backend/.env
     environment:
+      # The local stack runs over plain HTTP; the image itself defaults to APP_ENV=production checks.
+      APP_ENV: development
       DATABASE_URL: *db-url
       STORAGE_PATH: /app/storage
       BOT_API_TOKEN: ${BOT_API_TOKEN:-local-bot-token}
@@ -61,6 +63,8 @@ services:
   frontend:
     build: ./frontend
     restart: unless-stopped
+    environment:
+      BACKEND_URL: http://app:8000
     depends_on:
       app:
         condition: service_healthy

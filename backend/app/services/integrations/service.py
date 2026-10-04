@@ -21,10 +21,7 @@ def user_timezone(user: User) -> str:
         return settings.default_timezone
 
 
-def _secrets(integration: Integration) -> dict:
-    if integration.provider == "google":
-        # Google tokens predate the encrypted blob and live in their own columns.
-        return {"access_token": integration.access_token, "refresh_token": integration.refresh_token}
+def integration_secrets(integration: Integration) -> dict:
     return decrypt_json(integration.credentials_encrypted)
 
 
@@ -32,15 +29,12 @@ def build_provider(integration: Integration, tz: str) -> IntegrationProvider:
     provider_class = PROVIDERS.get(integration.provider)
     if not provider_class:
         raise IntegrationError(f"Неизвестный сервис {integration.provider}")
-    return provider_class(ProviderContext(config=integration.config or {}, secrets=_secrets(integration), timezone=tz))
+    return provider_class(ProviderContext(config=integration.config or {}, secrets=integration_secrets(integration), timezone=tz))
 
 
 def store_secrets(integration: Integration, secrets: dict) -> None:
-    if integration.provider == "google":
-        integration.access_token = secrets.get("access_token", integration.access_token)
-        integration.refresh_token = secrets.get("refresh_token", integration.refresh_token)
-    else:
-        integration.credentials_encrypted = encrypt_json({**decrypt_json(integration.credentials_encrypted), **secrets})
+    """Merge secrets into the encrypted blob; keys left out keep their stored value."""
+    integration.credentials_encrypted = encrypt_json({**integration_secrets(integration), **secrets})
 
 
 def _persist_rotated_secrets(integration: Integration, provider: IntegrationProvider) -> None:

@@ -20,34 +20,42 @@ def verify_password(password: str, hashed: str | None) -> bool:
     return bool(hashed) and password_hash.verify(password, hashed)
 
 
-def _create_token(user_id: int, token_type: str, lifetime: timedelta) -> str:
+def _create_token(user_id: int, token_type: str, lifetime: timedelta) -> tuple[str, str, datetime]:
     now = datetime.now(timezone.utc)
-    return jwt.encode(
-        {"sub": str(user_id), "type": token_type, "jti": uuid4().hex, "iat": now, "exp": now + lifetime},
+    jti, expires_at = uuid4().hex, now + lifetime
+    token = jwt.encode(
+        {"sub": str(user_id), "type": token_type, "jti": jti, "iat": now, "exp": expires_at},
         settings.secret_key,
         algorithm=settings.jwt_algorithm,
     )
+    return token, jti, expires_at
 
 
 def create_access_token(user_id: int) -> str:
-    return _create_token(user_id, ACCESS_TOKEN, timedelta(minutes=settings.jwt_expire_minutes))
+    return _create_token(user_id, ACCESS_TOKEN, timedelta(minutes=settings.jwt_expire_minutes))[0]
 
 
-def create_refresh_token(user_id: int) -> str:
+def create_refresh_token(user_id: int) -> tuple[str, str, datetime]:
+    """Return the token, its jti and expiry; the jti must be stored so the token can be revoked."""
     return _create_token(user_id, REFRESH_TOKEN, timedelta(days=settings.jwt_refresh_expire_days))
 
 
-def decode_token(token: str, token_type: str = ACCESS_TOKEN) -> int:
+def _decode(token: str, token_type: str) -> dict:
     payload = jwt.decode(
         token,
         settings.secret_key,
         algorithms=[settings.jwt_algorithm],
-        options={"require": ["sub", "exp", "type"]},
+        options={"require": ["sub", "exp", "type", "jti"]},
     )
     if payload.get("type") != token_type:
         raise ValueError("Unexpected token type")
-    return int(payload["sub"])
+    return payload
 
 
 def decode_access_token(token: str) -> int:
-    return decode_token(token, ACCESS_TOKEN)
+    return int(_decode(token, ACCESS_TOKEN)["sub"])
+
+
+def decode_refresh_token(token: str) -> tuple[int, str]:
+    payload = _decode(token, REFRESH_TOKEN)
+    return int(payload["sub"]), str(payload["jti"])

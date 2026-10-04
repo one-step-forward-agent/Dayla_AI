@@ -2,13 +2,15 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    APP_ENV=production
 
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y --no-install-recommends ffmpeg gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 10001 app
 
 COPY requirements.txt .
 RUN pip install --upgrade pip \
@@ -18,9 +20,13 @@ COPY app ./app
 COPY services ./services
 COPY alembic ./alembic
 COPY alembic.ini .
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN mkdir -p /app/storage
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && mkdir -p /app/storage \
+    && chown app:app /app/storage
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers"]
+# Runs migrations, then uvicorn, as the unprivileged "app" user (see docker-entrypoint.sh).
+CMD ["docker-entrypoint.sh"]

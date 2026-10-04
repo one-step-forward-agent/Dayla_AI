@@ -1,7 +1,14 @@
+import asyncio
+import ipaddress
+import socket
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, ClassVar
+
+import httpx
+
+from app.core.config import settings
 
 
 class IntegrationError(Exception):
@@ -10,6 +17,30 @@ class IntegrationError(Exception):
 
 class PushNotSupported(IntegrationError):
     pass
+
+
+async def guard_request(request: httpx.Request) -> None:
+    """httpx request hook: block user-supplied URLs (and redirects) that point into the server's network.
+
+    Without it any user could make the backend call the database, other internal services
+    or cloud metadata endpoints through the Jira / CalDAV / Obsidian URL fields.
+    """
+    if request.url.scheme not in ("http", "https"):
+        raise IntegrationError("Поддерживаются только адреса http(s)")
+    if settings.allow_private_integration_urls:
+        return
+    host = request.url.host
+    try:
+        infos = await asyncio.get_running_loop().getaddrinfo(host, request.url.port or 443, type=socket.SOCK_STREAM)
+    except socket.gaierror as error:
+        raise IntegrationError(f"Не удалось найти сервер {host}") from error
+    for info in infos:
+        address = ipaddress.ip_address(info[4][0].split("%", 1)[0])
+        if not address.is_global:
+            raise IntegrationError(f"Адрес {host} указывает во внутреннюю сеть — такие адреса запрещены")
+
+
+GUARDED_HOOKS = {"request": [guard_request]}
 
 
 @dataclass(frozen=True)

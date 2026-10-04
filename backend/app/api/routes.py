@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 from datetime import datetime, timedelta
 from uuid import uuid4
@@ -15,10 +16,11 @@ from app.models.models import Calendar, Event, EventFile, Integration, User
 from app.schemas import AssistantConfirmation, AssistantMessage, AssistantResponse, CalendarCreate, CalendarRead, EventCreate, EventRead, EventUpdate, UserRead, UserUpdate
 from app.services.google_calendar import GoogleCalendarProvider
 from app.services.integrations.google import google_event_body
-from app.services.integrations.service import event_payload
+from app.services.integrations.service import event_payload, integration_secrets, store_secrets
 
 router = APIRouter(prefix="/api")
 ALLOWED_EXTENSIONS = {"pdf", "doc", "docx", "xls", "xlsx", "png", "jpg", "jpeg"}
+AUDIO_EXTENSIONS = {".webm", ".ogg", ".oga", ".opus", ".mp3", ".m4a", ".mp4", ".wav", ".aac"}
 
 
 async def _owned_calendar(session: AsyncSession, user: User, calendar_id: int) -> Calendar:
@@ -58,9 +60,15 @@ async def _google_provider(session: AsyncSession, user_id: int) -> tuple[Integra
     integration = await session.scalar(
         select(Integration).where(Integration.user_id == user_id, Integration.provider == "google")
     )
-    if not integration or not integration.access_token:
+    secrets = integration_secrets(integration) if integration else {}
+    if not secrets.get("access_token"):
         return None, None
-    return integration, GoogleCalendarProvider(integration.access_token, integration.refresh_token)
+    return integration, GoogleCalendarProvider(secrets["access_token"], secrets.get("refresh_token"))
+
+
+def _remember_google_token(integration: Integration, provider: GoogleCalendarProvider) -> None:
+    """Persist the access token if the provider refreshed it."""
+    store_secrets(integration, {"access_token": provider.access_token})
 
 
 async def _push_new_events_to_google(session: AsyncSession, user_id: int, events: list[Event]) -> None:
@@ -75,7 +83,7 @@ async def _push_new_events_to_google(session: AsyncSession, user_id: int, events
             event.source = "google"
         except httpx.HTTPError:
             event.sync_status = "error"
-    integration.access_token = provider.access_token
+    _remember_google_token(integration, provider)
     await session.commit()
     for event in events:
         await session.refresh(event)
@@ -192,7 +200,7 @@ async def sync_event_to_google(event_id: int, user: User = Depends(get_current_u
         event.sync_status = "error"
         await session.commit()
         raise HTTPException(status_code=502, detail="Google Calendar request failed") from error
-    integration.access_token = provider.access_token
+    _remember_google_token(integration, provider)
     event.external_id = result.get("id")
     event.sync_status = "synced"
     event.source = "google"
@@ -220,7 +228,7 @@ async def sync_calendar(calendar_id: int, user: User = Depends(get_current_user)
         if not local:
             session.add(Calendar(user_id=calendar.user_id, integration_id=integration.id, name=remote.get("summary", external_id), provider="google", external_id=external_id, timezone=remote.get("timeZone", "UTC")))
             imported += 1
-    integration.access_token = provider.access_token
+    _remember_google_token(integration, provider)
     await session.commit()
     return {"imported_calendars": imported, "available_calendars": len(remote_calendars)}
 
@@ -368,14 +376,21 @@ async def extract_file_text(file_id: int, user: User = Depends(get_current_user)
 
 @router.post("/assistant/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...), user: User = Depends(get_current_user)):
-    suffix = Path(audio.filename or "audio").suffix or ".audio"
+    suffix = Path(audio.filename or "audio").suffix.lower()
+    if suffix not in AUDIO_EXTENSIONS:
+        suffix = ".audio"
+    content = await audio.read()
+    if len(content) > settings.max_file_size_mb * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Файл слишком большой")
     target = settings.storage_path / f"transcription-{uuid4().hex}{suffix}"
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_bytes(await audio.read())
+    target.write_bytes(content)
     try:
         from services.speech import recognize_audio
 
         return {"text": recognize_audio(str(target))}
+    except subprocess.CalledProcessError as error:
+        raise HTTPException(status_code=422, detail="Не удалось прочитать аудиофайл") from error
     except (RuntimeError, ValueError) as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     finally:

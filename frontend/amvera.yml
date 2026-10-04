@@ -1,0 +1,13 @@
+# Amvera project "frontend": nginx serves the React build and proxies /api, /auth, /health
+# to the backend at BACKEND_URL. See ../amvera.md.
+meta:
+  environment: docker
+  toolchain:
+    name: docker
+    version: latest
+build:
+  dockerfile: Dockerfile
+  skip: false
+run:
+  persistenceMount: /data
+  containerPort: 80

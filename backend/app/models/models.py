@@ -137,8 +137,7 @@ class Integration(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     provider: Mapped[str] = mapped_column(String(30))
     account_email: Mapped[str | None] = mapped_column(String(320))
-    access_token: Mapped[str | None] = mapped_column(Text)
-    refresh_token: Mapped[str | None] = mapped_column(Text)
+    # Fernet-encrypted JSON with the provider's secrets (Google OAuth tokens included).
     credentials_encrypted: Mapped[str | None] = mapped_column(Text)
     config: Mapped[dict] = mapped_column(JSONB, default=dict)
     token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -196,4 +195,21 @@ class Notification(Base):
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class RefreshToken(Base):
+    """Issued refresh tokens by jti.
+
+    rotated_at: exchanged for a new pair by /auth/refresh (still accepted for a short grace period).
+    revoked_at: ended by logout, logout-all or detected token theft (never accepted again).
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    jti: Mapped[str] = mapped_column(String(32), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    rotated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

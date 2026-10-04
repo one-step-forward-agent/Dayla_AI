@@ -1,0 +1,13 @@
+# Amvera project "backend": FastAPI API + Alembic migrations on start. See ../amvera.md.
+meta:
+  environment: docker
+  toolchain:
+    name: docker
+    version: latest
+build:
+  dockerfile: Dockerfile
+  skip: false
+run:
+  # Uploaded event files live here (STORAGE_PATH=/data/storage) and survive redeploys.
+  persistenceMount: /data
+  containerPort: 8000

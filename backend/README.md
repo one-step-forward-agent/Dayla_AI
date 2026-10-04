@@ -44,11 +44,16 @@ Copy `.env.example` to `.env` and fill in the values:
 
 | Variable | Description |
 | --- | --- |
+| `APP_ENV` | `production` refuses to start with weak secrets, `COOKIE_SECURE=false` or non-HTTPS `CORS_ORIGINS`, and hides `/docs`. Default `development`; the Docker image sets `production` |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Postgres credentials (used by Docker Compose) |
-| `DATABASE_URL` | SQLAlchemy async URL, e.g. `postgresql+asyncpg://user:pass@host:5432/db` |
-| `SECRET_KEY` | Secret for signing JWTs and session cookies |
-| `JWT_ALGORITHM`, `JWT_EXPIRE_MINUTES`, `JWT_REFRESH_EXPIRE_DAYS` | JWT settings (default `HS256`, `60`, `30`) |
+| `DATABASE_URL` | SQLAlchemy async URL, e.g. `postgresql+asyncpg://user:pass@host:5432/db` (`postgres://` is accepted too) |
+| `SECRET_KEY` | Secret for signing JWTs and the OAuth state, at least 32 random characters |
+| `JWT_ALGORITHM`, `JWT_EXPIRE_MINUTES`, `JWT_REFRESH_EXPIRE_DAYS` | JWT settings (default `HS256`, `15`, `30`). Refresh tokens rotate on each use and are revoked by `/auth/logout` and `/auth/logout-all` |
 | `COOKIE_SECURE` | Mark auth cookies `Secure` (set `true` behind HTTPS) |
+| `CORS_ORIGINS` | Comma-separated extra browser origins allowed to call the API. Empty (default) means same-origin only. `*` is rejected |
+| `ENABLE_DOCS` | Swagger UI and `/openapi.json` (default: on in development, off in production) |
+| `ALLOW_PRIVATE_INTEGRATION_URLS` | Let Jira, CalDAV and Obsidian URLs point to private or loopback addresses (default: on in development, off in production) |
+| `GIGACHAT_CA_BUNDLE` | PEM file with the Russian Trusted Root CA, used to verify GigaChat's TLS certificate |
 | `INTEGRATIONS_ENCRYPTION_KEY` | Fernet key for integration credentials; derived from `SECRET_KEY` if empty |
 | `BOT_API_TOKEN` | Shared secret for the bot's `/internal/bot/*` API (same value in `tg_bot/.env`) |
 | `TELEGRAM_BOT_USERNAME` | Bot username, used for the `t.me/<bot>?start=<code>` linking link |
