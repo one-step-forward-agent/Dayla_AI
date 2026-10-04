@@ -1,11 +1,9 @@
 from contextlib import asynccontextmanager
-from pathlib import Path
-
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 
 from app.api import integrations, internal, reminders
 from app.api.auth import auth_router, session_router
@@ -32,7 +30,7 @@ async def lifespan(_: FastAPI):
 
 
 docs = {} if settings.enable_docs else {"docs_url": None, "redoc_url": None, "openapi_url": None}
-app = FastAPI(title="Focus Day API", version="0.1.0", lifespan=lifespan, **docs)
+app = FastAPI(title="Dayla API", version="0.1.0", lifespan=lifespan, **docs)
 
 
 @app.middleware("http")
@@ -48,25 +46,21 @@ async def security_headers(request: Request, call_next):
 def _same_origin_or_allowed(request: Request) -> bool:
     origin = request.headers.get("origin")
     if origin is None:
-        # Browsers send Origin with every POST/PUT/PATCH/DELETE; its absence means a non-browser client.
         return True
     origin = origin.rstrip("/")
     if origin in settings.cors_origins:
         return True
-    # Behind nginx the public host arrives in X-Forwarded-Host (nginx overwrites any client value).
     host = (request.headers.get("x-forwarded-host") or request.headers.get("host") or "").split(",")[0].strip()
     return urlsplit(origin).netloc == host
 
 
 @app.middleware("http")
 async def reject_cross_site_writes(request: Request, call_next):
-    """CSRF defence: state-changing requests from other sites are refused (login forms included)."""
     if request.method in UNSAFE_METHODS and not _same_origin_or_allowed(request):
         return JSONResponse({"detail": "Cross-site request blocked"}, status_code=403)
     return await call_next(request)
 
 
-# Added last so it is the outermost middleware and answers preflight requests itself.
 if settings.cors_origins:
     app.add_middleware(
         CORSMiddleware,
@@ -89,8 +83,3 @@ app.include_router(internal.router)
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
-
-@app.get("/", response_class=FileResponse)
-async def index():
-    return Path(__file__).parent / "templates" / "index.html"

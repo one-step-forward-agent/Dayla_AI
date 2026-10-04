@@ -8,7 +8,6 @@ import httpx
 
 from app.services.integrations.base import GUARDED_HOOKS, ConfigField, EventPayload, IntegrationError, IntegrationProvider, PushResult, RemoteItem
 
-# "- [ ] Title 📅 2026-10-05 ⏰ 14:30" (Tasks plugin) or "- [ ] Title [due:: 2026-10-05]" (Dataview).
 TASK_LINE = re.compile(r"^\s*[-*]\s+\[(?P<done>[ xX])\]\s+(?P<body>.+?)\s*$")
 DUE_DATE = re.compile(r"(?:📅|\[?due::)\s*(?P<date>\d{4}-\d{2}-\d{2})\]?")
 DUE_TIME = re.compile(r"⏰\s*(?P<time>\d{1,2}:\d{2})")
@@ -19,7 +18,6 @@ def task_id(body: str) -> str:
 
 
 def parse_tasks(markdown: str, tz: ZoneInfo) -> list[tuple[str, str, datetime, bool]]:
-    """Return (id, title, start, all_day) for each open task that has a due date."""
     tasks = []
     for line in markdown.splitlines():
         match = TASK_LINE.match(line)
@@ -46,7 +44,7 @@ class ObsidianIntegration(IntegrationProvider):
     title = "Obsidian"
     description = (
         "Плагин Local REST API. Задачи с датой из выбранной заметки попадают в календарь, "
-        "события Focus Day добавляются туда же как задачи. Сервер Focus Day должен видеть адрес плагина."
+        "события Dayla добавляются туда же как задачи. Сервер Dayla должен видеть адрес плагина."
     )
     fields = [
         ConfigField("base_url", "Адрес Local REST API", type="url", default="https://127.0.0.1:27124"),
@@ -102,7 +100,6 @@ class ObsidianIntegration(IntegrationProvider):
         body = f"{title} 📅 {local:%Y-%m-%d}" if event.all_day else f"{title} 📅 {local:%Y-%m-%d} ⏰ {local:%H:%M}"
         existing = await self._read_tasks()
         prefix = "" if not existing or existing.endswith("\n") else "\n"
-        # POST appends to the note and creates it when missing.
         response = await self._request("POST", self.tasks_path, content=f"{prefix}- [ ] {body}\n".encode(), headers={"Content-Type": "text/markdown"})
         if response.is_error:
             raise IntegrationError(f"Obsidian ответил {response.status_code}")

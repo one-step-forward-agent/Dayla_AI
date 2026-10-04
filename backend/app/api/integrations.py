@@ -53,7 +53,6 @@ async def connect_integration(slug: str, payload: IntegrationConnect, user: User
         return {"authorization_url": google_authorization_url(user.id)}
     integration = await _integration(session, user, slug)
     previous_secrets = decrypt_json(integration.credentials_encrypted) if integration else {}
-    # Secret fields left blank keep their stored value, so settings can be edited without re-entering tokens.
     values = {**previous_secrets, **{key: value for key, value in payload.values.items() if value not in (None, "")}}
     try:
         config, secrets = provider_class.split_values(values)
@@ -94,11 +93,9 @@ async def sync_integration(slug: str, user: User = Depends(get_current_user), se
 
 @router.delete("/integrations/{slug}", status_code=status.HTTP_204_NO_CONTENT)
 async def disconnect_integration(slug: str, purge: bool = False, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
-    """Remove the connection. With purge=true the imported calendar and its events are deleted too."""
     integration = await _require_integration(session, user, slug)
     if purge:
         calendar_ids = select(Calendar.id).where(Calendar.user_id == user.id, Calendar.provider == slug)
-        # Legacy databases have no FK on events.calendar_id, so events are removed explicitly.
         await session.execute(delete(Event).where(Event.user_id == user.id, Event.calendar_id.in_(calendar_ids)))
         await session.execute(delete(Calendar).where(Calendar.id.in_(calendar_ids)))
     await session.delete(integration)

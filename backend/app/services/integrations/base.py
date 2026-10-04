@@ -12,7 +12,7 @@ from app.core.config import settings
 
 
 class IntegrationError(Exception):
-    """A user-facing failure talking to an external service."""
+    pass
 
 
 class PushNotSupported(IntegrationError):
@@ -20,11 +20,6 @@ class PushNotSupported(IntegrationError):
 
 
 async def guard_request(request: httpx.Request) -> None:
-    """httpx request hook: block user-supplied URLs (and redirects) that point into the server's network.
-
-    Without it any user could make the backend call the database, other internal services
-    or cloud metadata endpoints through the Jira / CalDAV / Obsidian URL fields.
-    """
     if request.url.scheme not in ("http", "https"):
         raise IntegrationError("Поддерживаются только адреса http(s)")
     if settings.allow_private_integration_urls:
@@ -47,7 +42,7 @@ GUARDED_HOOKS = {"request": [guard_request]}
 class ConfigField:
     name: str
     label: str
-    type: str = "text"  # text | password | url | checkbox
+    type: str = "text"
     secret: bool = False
     required: bool = True
     placeholder: str = ""
@@ -75,8 +70,6 @@ class PushResult:
 
 @dataclass
 class EventPayload:
-    """The subset of a local event that providers need to export it."""
-
     title: str
     start_at: datetime
     end_at: datetime
@@ -91,7 +84,6 @@ class ProviderContext:
     config: dict[str, Any]
     secrets: dict[str, Any]
     timezone: str
-    # Providers that rotate tokens put the new values here; the caller persists them.
     updated_secrets: dict[str, Any] = field(default_factory=dict)
 
 
@@ -99,10 +91,9 @@ class IntegrationProvider(ABC):
     slug: ClassVar[str]
     title: ClassVar[str]
     description: ClassVar[str]
-    auth_type: ClassVar[str] = "credentials"  # credentials | oauth
+    auth_type: ClassVar[str] = "credentials"
     fields: ClassVar[list[ConfigField]] = []
     supports_push: ClassVar[bool] = True
-    # Imported events get "<slug>:<integration id>:<remote id>" unless the provider keeps raw ids.
     scoped_external_ids: ClassVar[bool] = True
 
     def __init__(self, context: ProviderContext):
@@ -112,18 +103,17 @@ class IntegrationProvider(ABC):
 
     @abstractmethod
     async def verify(self) -> str:
-        """Check the credentials and return a human-readable account label."""
+        pass
 
     @abstractmethod
     async def fetch_items(self, start: datetime, end: datetime) -> list[RemoteItem]:
-        """Return items with a date between start and end."""
+        pass
 
     async def push_event(self, event: EventPayload) -> PushResult:
         raise PushNotSupported(f"{self.title} does not support export")
 
     @classmethod
     def split_values(cls, values: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-        """Split submitted form values into public config and encrypted secrets."""
         config, secrets = {}, {}
         for item in cls.fields:
             value = values.get(item.name, item.default)

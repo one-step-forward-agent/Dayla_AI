@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-# Values shipped in .env.example / docker-compose.yml; never acceptable in production.
 PLACEHOLDER_SECRETS = {"", "change-me", "replace-with-a-random-secret", "local-bot-token", "same-value-as-backend"}
 
 
@@ -26,7 +25,6 @@ def _list(name: str) -> tuple[str, ...]:
 
 
 def _database_url() -> str:
-    """Accept the plain postgres:// URLs that hosting providers hand out."""
     url = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:admin@127.0.0.1:5432/focus_day").strip()
     for prefix in ("postgres://", "postgresql://"):
         if url.startswith(prefix):
@@ -58,18 +56,13 @@ class Settings:
     telegram_bot_username: str | None = os.getenv("TELEGRAM_BOT_USERNAME")
     telegram_bot_token: str | None = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TOKEN")
     default_timezone: str = os.getenv("DEFAULT_TIMEZONE", "Europe/Moscow")
-    # Swagger UI and /openapi.json; off by default in production.
     enable_docs: bool = _bool("ENABLE_DOCS", not _is_production())
-    # Lets integrations (Jira, CalDAV, Obsidian) call private/loopback addresses; off by default in production.
     allow_private_integration_urls: bool = _bool("ALLOW_PRIVATE_INTEGRATION_URLS", not _is_production())
-    # PEM bundle with the Russian Trusted Root CA; when empty GigaChat TLS certificates are not verified.
     gigachat_ca_bundle: str = os.getenv("GIGACHAT_CA_BUNDLE", "")
-    # Other origins (scheme://host[:port]) allowed to call the API from a browser, comma-separated.
-    # Empty: same-origin only, which is all the bundled frontends need.
     cors_origins: tuple[str, ...] = _list("CORS_ORIGINS")
+    public_app_url: str = os.getenv("PUBLIC_APP_URL", "").strip().rstrip("/")
 
     def validate(self) -> None:
-        """Refuse to start in production with secrets that would let anyone forge sessions or bot calls."""
         problems = []
         if self.secret_key in PLACEHOLDER_SECRETS or len(self.secret_key) < 32:
             problems.append("SECRET_KEY must be a random value of at least 32 characters")
@@ -78,7 +71,6 @@ class Settings:
         if not self.cookie_secure:
             problems.append("COOKIE_SECURE must be true behind HTTPS")
         if "*" in self.cors_origins:
-            # Credentialed CORS with a wildcard would let any website act as the logged-in user.
             raise RuntimeError("CORS_ORIGINS must list explicit origins; '*' is not allowed")
         insecure = [origin for origin in self.cors_origins if not origin.startswith("https://")]
         if insecure:

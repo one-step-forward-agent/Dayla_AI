@@ -1,6 +1,4 @@
 #!/bin/sh
-# Starts as root only to hand the (possibly freshly mounted) storage directory to the app user,
-# then drops privileges for migrations and the API server.
 set -e
 
 storage="${STORAGE_PATH:-/app/storage}"

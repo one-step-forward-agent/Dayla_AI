@@ -3,18 +3,32 @@ import secrets
 from datetime import datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import and_, or_, select, update
+from sqlalchemy import and_, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.models.models import Event, Notification, NotificationStatus, ReminderSettings, User
+from app.services.events import default_calendar
 from app.services.integrations.service import user_timezone
+from app.services.ru import MONTHS, WEEKDAYS_ACCUSATIVE, plural, relative_day, time_range
 
 MAX_LEAD_MINUTES = 7 * 24 * 60
 DIGEST_WINDOW = timedelta(hours=6)
 CLAIM_TIMEOUT = timedelta(minutes=5)
 MAX_ATTEMPTS = 3
 LINK_CODE_LIFETIME = timedelta(minutes=15)
+
+LEGACY_EVENTS = text(
+    "UPDATE events SET user_id = :user_id, calendar_id = :calendar_id, start_at = starts_at, "
+    "end_at = COALESCE(NULLIF(ends_at, starts_at), starts_at + interval '1 hour'), timezone = :timezone, "
+    "status = 'confirmed', priority = 'medium', source = 'ai', sync_status = 'not_synced' "
+    "WHERE user_id = :chat_id AND start_at IS NULL AND starts_at IS NOT NULL"
+)
+LEGACY_CONVERSATION = text("UPDATE conversation_messages SET user_id = :user_id WHERE user_id = :chat_id")
+LEGACY_PLACEHOLDER_USER = text(
+    "DELETE FROM users WHERE tg_id = :chat_id AND id <> :user_id AND password_hash IS NULL AND email LIKE '%@local.invalid'"
+)
 
 
 async def get_settings(session: AsyncSession, user: User) -> ReminderSettings:
@@ -50,25 +64,33 @@ def in_quiet_hours(reminder_settings: ReminderSettings, moment: time) -> bool:
 
 def reminder_text(event: Event, minutes: int, tz: ZoneInfo) -> str:
     starts = event.start_at.astimezone(tz)
-    lead = "Начинается сейчас" if minutes == 0 else f"Через {format_lead(minutes)}"
-    lines = [f"🔔 {lead}: <b>{html.escape(event.title)}</b>", f"🕒 {starts:%d.%m.%Y %H:%M}"]
+    ends = event.end_at.astimezone(tz)
+    today = datetime.now(tz).date()
+    lead = "Уже идёт" if minutes < 0 else "Начинается сейчас" if minutes == 0 else f"Через {format_lead(minutes)}"
+    when = "весь день" if event.all_day else time_range(starts, ends)
+    lines = [f"🔔 <b>{lead}</b>", "", f"<b>{html.escape(event.title)}</b>", f"🕒 {when} · {relative_day(starts.date(), today)}"]
     if event.location:
         lines.append(f"📍 {html.escape(event.location)}")
     return "\n".join(lines)
 
 
 def digest_text(events: list[Event], day: datetime, tz: ZoneInfo) -> str:
+    date_text = f"{WEEKDAYS_ACCUSATIVE[day.weekday()]}, {day.day} {MONTHS[day.month - 1]}"
     if not events:
-        return f"☀️ План на {day:%d.%m.%Y}: событий нет 🎉"
-    lines = [f"☀️ План на {day:%d.%m.%Y}:"]
+        return f"☀️ <b>Доброе утро!</b>\n\nНа {date_text} ничего не запланировано — день свободен 🌿"
+    count = len(events)
+    lines = ["☀️ <b>Доброе утро!</b>", f"План на {date_text} — {count} {plural(count, 'событие', 'события', 'событий')}", ""]
     for event in events:
         when = "весь день" if event.all_day else f"{event.start_at.astimezone(tz):%H:%M}"
-        lines.append(f"• {when} — {html.escape(event.title)}")
+        line = f"<b>{when}</b>  {html.escape(event.title)}"
+        if event.location:
+            line += f"  · 📍 {html.escape(event.location)}"
+        lines.append(line)
+    lines += ["", "Хорошего дня ✨"]
     return "\n".join(lines)
 
 
 async def generate_due(session: AsyncSession, now: datetime) -> int:
-    """Queue reminders and digests that are due. Idempotent thanks to dedupe_key."""
     rows = await session.execute(
         select(User, ReminderSettings)
         .join(ReminderSettings, ReminderSettings.user_id == User.id)
@@ -92,7 +114,6 @@ async def generate_due(session: AsyncSession, now: datetime) -> int:
             due = [minutes for minutes in event_leads if event.start_at - timedelta(minutes=minutes) <= now]
             if not due:
                 continue
-            # Only the closest due offset is sent, so a late start does not fire every offset at once.
             minutes = min(due)
             values.append(
                 {
@@ -100,7 +121,7 @@ async def generate_due(session: AsyncSession, now: datetime) -> int:
                     "event_id": event.id,
                     "kind": "reminder",
                     "dedupe_key": f"reminder:{event.id}:{int(event.start_at.timestamp())}:{minutes}",
-                    "text": reminder_text(event, minutes, tz),
+                    "text": reminder_text(event, max(0, round((event.start_at - now).total_seconds() / 60)), tz),
                     "scheduled_for": now,
                     "expires_at": event.start_at,
                 }
@@ -167,7 +188,16 @@ async def claim(session: AsyncSession, limit: int = 50) -> list[dict]:
         notification.status = NotificationStatus.SENDING
         notification.claimed_at = now
         notification.attempts += 1
-        claimed.append({"id": notification.id, "chat_id": user.telegram_chat_id, "text": notification.text, "kind": notification.kind})
+        claimed.append(
+            {
+                "id": notification.id,
+                "chat_id": user.telegram_chat_id,
+                "text": notification.text,
+                "kind": notification.kind,
+                "event_id": notification.event_id,
+                "url": f"{settings.public_app_url}/app/events/{notification.event_id}" if settings.public_app_url and notification.event_id else None,
+            }
+        )
     await session.commit()
     return claimed
 
@@ -186,7 +216,6 @@ async def acknowledge(session: AsyncSession, notification: Notification, ok: boo
             notification.status = NotificationStatus.PENDING
             notification.scheduled_for = now + timedelta(minutes=notification.attempts)
         if chat_unreachable:
-            # The user blocked the bot or deleted the chat; stop queueing messages for it.
             user = await session.get(User, notification.user_id)
             if user:
                 user.telegram_chat_id = None
@@ -203,7 +232,7 @@ async def queue_test(session: AsyncSession, user: User) -> Notification:
         user_id=user.id,
         kind="test",
         dedupe_key=f"test:{user.id}:{secrets.token_hex(8)}",
-        text=f"✅ Тестовое уведомление Focus Day.\nНапоминания {state}, за: {leads}.",
+        text=f"✅ Тестовое уведомление Dayla.\nНапоминания {state}, за: {leads}.",
         scheduled_for=now,
         expires_at=now + timedelta(hours=1),
         status=NotificationStatus.PENDING,
@@ -235,5 +264,39 @@ async def link_chat(session: AsyncSession, code: str, chat_id: int, username: st
     user.telegram_link_code = None
     user.telegram_link_expires_at = None
     await get_settings(session, user)
+    await import_legacy_bot_data(session, user, chat_id)
     await session.commit()
     return user
+
+
+async def import_legacy_bot_data(session: AsyncSession, user: User, chat_id: int) -> None:
+    calendar = await default_calendar(session, user, user_timezone(user))
+    params = {"user_id": user.id, "chat_id": chat_id, "calendar_id": calendar.id, "timezone": user_timezone(user)}
+    await session.execute(LEGACY_EVENTS, params)
+    await session.execute(LEGACY_CONVERSATION, params)
+    await session.execute(LEGACY_PLACEHOLDER_USER, params)
+
+
+async def snooze(session: AsyncSession, notification: Notification, minutes: int) -> Notification:
+    now = datetime.now(timezone.utc)
+    scheduled = now + timedelta(minutes=minutes)
+    body = notification.text
+    event = await session.get(Event, notification.event_id) if notification.event_id else None
+    if event and event.start_at:
+        user = await session.get(User, notification.user_id)
+        lead = int((event.start_at - scheduled).total_seconds() // 60)
+        body = reminder_text(event, lead, ZoneInfo(user_timezone(user)))
+    copy = Notification(
+        user_id=notification.user_id,
+        event_id=notification.event_id,
+        kind=notification.kind,
+        dedupe_key=f"snooze:{notification.id}:{secrets.token_hex(6)}",
+        text=body,
+        scheduled_for=scheduled,
+        expires_at=scheduled + timedelta(hours=2),
+        status=NotificationStatus.PENDING,
+        attempts=0,
+    )
+    session.add(copy)
+    await session.commit()
+    return copy

@@ -13,7 +13,6 @@ from app.models.models import User
 ACCESS_COOKIE = "focus_day_access"
 REFRESH_COOKIE = "focus_day_refresh"
 
-# Swagger's "Authorize" button posts the form to /auth/token; browsers use the cookie instead.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
 
 
@@ -28,7 +27,7 @@ async def get_current_user(
 ) -> User:
     token = bearer_token or cookie_token
     if not token:
-        raise _unauthorized("Сначала войдите в Focus Day")
+        raise _unauthorized("Сначала войдите в Dayla")
     try:
         user_id = decode_access_token(token)
     except (jwt.InvalidTokenError, ValueError):

@@ -22,13 +22,12 @@ Python 3.12 · FastAPI · SQLAlchemy 2 (async) + asyncpg · Alembic · PostgreSQ
 
 ```
 app/
-  main.py               # FastAPI app, /health, serves templates/index.html at /
+  main.py               # FastAPI app, /health
   api/routes.py         # all API routes
   core/                 # config, DB session, JWT/password helpers
   models/models.py      # SQLAlchemy models
   schemas.py            # Pydantic schemas
   services/             # calendar provider abstraction, Google Calendar client
-  templates/index.html  # minimal web client
 services/
   gigachat.py           # GigaChat client and date/intent parsing
   speech.py             # audio → text

@@ -1,28 +1,33 @@
-# Focus Day frontend
+# Dayla frontend
 
-Vite + React + TypeScript web client. It's multi-page and responsive: a sidebar on desktop, a top
-bar plus bottom tab bar on phones, and light and dark themes that follow the system. It has no
-dependencies beyond React.
+One React app for the whole site: the public landing, onboarding, sign-in and the product itself.
+It is served by nginx in Docker (and on Amvera), with the backend proxied on the same origin.
 
-| Page | Path | What it does |
+| Path | What it is | Code |
 | --- | --- | --- |
-| Today | `/` | Greeting, the next event, today's agenda, the week ahead, and a one-line input for the assistant |
-| Calendar | `/calendar?month=YYYY-MM&day=YYYY-MM-DD` | Month grid (titles on desktop, dots on phones) with the selected day's events |
-| Event | `/events/:id` | Details, edit and delete, file attachments (upload, extract text, delete), send to Google, Apple, Jira, Notion and Obsidian |
-| New event | `/events/new?day=YYYY-MM-DD` | Event form: all-day, priority, per-event reminder, calendar, place, notes |
-| Assistant | `/assistant` | GigaChat chat. "Plan" turns text, voice or a PDF/DOCX into proposed events to confirm. "Find" searches the calendar |
-| Integrations | `/integrations` | Connect (OAuth for Google, forms for the rest), test, sync, disconnect (optionally removing imported events) |
-| Settings | `/settings` | Profile and timezone; reminders (lead times, morning plan, quiet hours, sources); Telegram linking, a test message and history; calendars and `.ics` export; logout, or logout from every device |
-| Login / Register | `/login`, `/register` | After login you return to the page you came from (`?next=`) |
+| `/` | Landing page (logged-in visitors go straight to `/app`) | `src/components/onboarding/Start.tsx`, `src/components/landing/` |
+| `/onboarding/*` | Ten-step onboarding. Answers are kept in `sessionStorage` and applied after sign-up: timezone, plus the first task as an event tomorrow | `src/components/onboarding/` |
+| `/login`, `/register` | Auth screens (`?next=` returns you to the page you came from) | `src/pages/Auth/`, `src/layouts/AuthLayout.tsx` |
+| `/terms-of-use`, `/personal-data-consent` | Legal documents (Markdown) | `src/pages/Documents/` |
+| `/app/*` | The product: Today, Calendar, Event, Assistant, Integrations, Settings | `src/app/` |
 
-## Code map
+## Design and themes
 
-- `src/api/`: `types.ts` mirrors `backend/app/schemas.py`. `client.ts` is the API client: it uses httpOnly cookies, makes one shared refresh call on 401, and sends you to login when the session is gone.
-- `src/router.tsx`: a small History-API router with `Link`, `navigate`, `useLocation` and `match`.
-- `src/auth.tsx`: the session context (`useAuth`, `useUser`).
-- `src/components/`: `Layout` (navigation), `ui` (buttons, cards, fields, dialog, toasts, error boundary), `events` (event list and form), `icons`.
-- `src/pages/`: one file per page.
-- `src/lib/`: date formatting helpers and the `useAsync` / `useAction` hooks.
+- The landing, onboarding and auth pages use Tailwind (`tailwind.config.js`, `src/index.css`).
+- The app under `/app` uses `src/app/app.css`, which is scoped to `.fd-app` and follows the same visual language: Inter, a blue→violet gradient, and glass cards on a soft grid.
+- **Themes:** light, dark, or follow the system.
+  - `src/theme.tsx` stores the choice in `localStorage` (`dayla-theme`) and sets the `dark` class on `<html>`. Tailwind (`darkMode: "class"`) and `app.css` both key off that class.
+  - A small script in `index.html` applies the theme before first paint.
+  - The toggle is in every header. Settings → Appearance also offers "Как в системе" (follow the system).
+- **Font:** Inter is self-hosted (`@fontsource-variable/inter`), so no request goes to Google Fonts.
+
+## State and API
+
+- `src/app/api/client.ts` is the single API client.
+  - Sessions use the backend's httpOnly cookies. On 401 the client makes one shared refresh call and retries.
+  - `GET /api/public/config` provides the Telegram bot link for the landing footer.
+- `src/store/authStore.ts` (zustand) is the single session store, shared by the landing header, the auth pages and the app.
+- `src/app/router.tsx` lets the app's pages use paths relative to `/app` on top of react-router.
 
 ## Development
 
@@ -35,6 +40,14 @@ npm run build      # type-check + production build into dist/
 The dev proxy keeps the browser's `Host` header (`changeOrigin: false`), because the backend
 rejects writes whose `Origin` doesn't match the host (CSRF protection).
 
-In Docker, nginx serves the build and proxies `/api` and `/auth` to the backend at
-`BACKEND_URL` (default `http://app:8000`, see `nginx.conf.template`). Requests stay same-origin,
-so no CORS setup is needed.
+In Docker, nginx serves the build and proxies `/api`, `/auth` and `/health` to the backend at
+`BACKEND_URL` (default `http://app:8000`, see `nginx.conf.template`). Hashed assets are cached
+for a year, and pages are revalidated on every load.
+
+## Content to review before launch
+
+- `src/pages/Documents/md_texts/*.md`: the terms and the personal-data consent come from the
+  organisation's previous product ("Prosklad") and must be replaced with Dayla's legal texts.
+- The support email in the footer (`LandingFooter.tsx`) is the organisation's address.
+
+Landing code is © MentrixLabs, MIT License; see `THIRD_PARTY_NOTICES.md`.

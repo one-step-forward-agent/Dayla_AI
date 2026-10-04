@@ -1,14 +1,25 @@
-"""Endpoints used by the Telegram bot, authenticated with the shared X-Bot-Token header."""
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_bot
+from app.core.config import settings
 from app.core.database import get_session
 from app.models.models import Notification, User
-from app.schemas import BotAckRequest, BotClaimRequest, BotLinkRequest, ReminderSettingsRead, ReminderSettingsUpdate
-from app.services import reminders
+from app.schemas import (
+    BotAckRequest,
+    BotChatRequest,
+    BotClaimRequest,
+    BotLinkRequest,
+    BotSnoozeRequest,
+    BotUndoRequest,
+    ReminderSettingsRead,
+    ReminderSettingsUpdate,
+)
+from app.services import chat, reminders
+from app.services.integrations.service import user_timezone
 
 router = APIRouter(prefix="/internal/bot", tags=["bot"], dependencies=[Depends(require_bot)], include_in_schema=False)
 
@@ -25,7 +36,41 @@ async def link(payload: BotLinkRequest, session: AsyncSession = Depends(get_sess
     user = await reminders.link_chat(session, payload.code, payload.chat_id, payload.username)
     if not user:
         raise HTTPException(status_code=404, detail="Link code is invalid or expired")
-    return {"email": user.email, "name": user.name}
+    return profile(user)
+
+
+def profile(user: User) -> dict:
+    return {
+        "email": user.email,
+        "name": user.name,
+        "timezone": user_timezone(user),
+        "app_url": settings.public_app_url or None,
+    }
+
+
+@router.get("/users/{chat_id}")
+async def get_user(chat_id: int, session: AsyncSession = Depends(get_session)):
+    return profile(await _user_by_chat(session, chat_id))
+
+
+@router.post("/chat/{chat_id}")
+async def chat_message(chat_id: int, payload: BotChatRequest, session: AsyncSession = Depends(get_session)):
+    user = await _user_by_chat(session, chat_id)
+    try:
+        return await chat.handle_message(session, user, payload.text)
+    except chat.AssistantUnavailable:
+        raise HTTPException(status_code=503, detail="Assistant is unavailable") from None
+
+
+@router.get("/chat/{chat_id}/agenda/{scope}")
+async def chat_agenda(chat_id: int, scope: Literal["today", "tomorrow", "week"], session: AsyncSession = Depends(get_session)):
+    return await chat.agenda(session, await _user_by_chat(session, chat_id), scope)
+
+
+@router.post("/chat/{chat_id}/undo")
+async def chat_undo(chat_id: int, payload: BotUndoRequest, session: AsyncSession = Depends(get_session)):
+    user = await _user_by_chat(session, chat_id)
+    return {"deleted": await chat.undo(session, user, payload.event_ids)}
 
 
 @router.post("/unlink/{chat_id}")
@@ -68,3 +113,13 @@ async def ack(notification_id: int, payload: BotAckRequest, session: AsyncSessio
         raise HTTPException(status_code=404, detail="Notification not found")
     await reminders.acknowledge(session, notification, payload.ok, payload.error, payload.chat_unreachable)
     return {"status": notification.status}
+
+
+@router.post("/notifications/{notification_id}/snooze")
+async def snooze(notification_id: int, payload: BotSnoozeRequest, session: AsyncSession = Depends(get_session)):
+    notification = await session.get(Notification, notification_id)
+    user = await session.get(User, notification.user_id) if notification else None
+    if not notification or not user or user.telegram_chat_id != payload.chat_id:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    copy = await reminders.snooze(session, notification, payload.minutes)
+    return {"scheduled_for": copy.scheduled_for}

@@ -11,7 +11,6 @@ NOTION_VERSION = "2022-06-28"
 
 
 def _database_id(value: str) -> str:
-    """Accept a raw id or a full Notion URL and return the dashed UUID."""
     match = re.search(r"([0-9a-f]{32})", value.replace("-", "").lower())
     if not match:
         raise IntegrationError("Не удалось распознать ID базы Notion")

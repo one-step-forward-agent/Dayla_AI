@@ -29,7 +29,6 @@ export function CalendarPage() {
   const selected = parseDayKey(query.get("day")) ?? today;
   const month = parseDayKey(`${query.get("month") ?? ""}-01`) ?? startOfMonth(selected);
 
-  // Always six weeks, so the grid height doesn't jump between months.
   const gridStart = startOfWeek(month);
   const days = useMemo(() => Array.from({ length: 42 }, (_, index) => addDays(gridStart, index)), [gridStart.getTime()]);
   const gridEnd = addDays(gridStart, 42);

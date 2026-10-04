@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="360" viewBox="0 0 1200 360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+  </defs>
+  <!-- mark -->
+  <g transform="translate(30,20)">
+    <path d="M 80 280 L 80 40 L 190 200 L 300 40 L 300 280" 
+          fill="none" stroke="url(#g1)" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="190" cy="200" r="12" fill="#0F172A" />
+    <circle cx="300" cy="280" r="10" fill="#0F172A" />
+    <circle cx="80" cy="280" r="10" fill="#0F172A" />
+  </g>
+  <!-- wordmark -->
+  <g font-family="Inter, Poppins, 'Segoe UI', Arial, sans-serif">
+    <text x="380" y="170" font-weight="700" font-size="92" letter-spacing="2" fill="#111827">MENTRIX</text>
+    <!-- LABS tag -->
+    <rect x="384" y="200" rx="10" ry="10" width="160" height="52" fill="#2563EB" />
+    <text x="404" y="236" font-weight="700" font-size="32" fill="#ffffff" letter-spacing="3">LABS</text>
+  </g>
+</svg>

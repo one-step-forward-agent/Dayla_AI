@@ -20,8 +20,6 @@ import { Link } from "../router";
 import { Icon } from "./icons";
 import { Badge, Button, Field, Switch } from "./ui";
 
-/* ---------- List ---------- */
-
 export function EventRow({ event, showDate = false }: { event: CalendarEvent; showDate?: boolean }) {
   const start = new Date(event.start_at);
   return (
@@ -62,20 +60,18 @@ export function EventList({ events, showDate }: { events: CalendarEvent[]; showD
   );
 }
 
-/* ---------- Form ---------- */
-
 const REMINDER_OPTIONS = [0, 5, 10, 15, 30, 60, 120, 1440];
 
 interface FormState {
   title: string;
   allDay: boolean;
-  start: string; // datetime-local or date
+  start: string;
   end: string;
   calendarId: string;
   priority: Priority;
   location: string;
   description: string;
-  reminder: string; // "" = from reminder settings
+  reminder: string;
 }
 
 function initialState(event?: CalendarEvent, day?: string | null): FormState {
@@ -86,7 +82,6 @@ function initialState(event?: CalendarEvent, day?: string | null): FormState {
       title: event.title,
       allDay: event.all_day,
       start: event.all_day ? dayKey(start) : toLocalInput(start),
-      // All-day events end at the next midnight; the form shows the last day inclusive.
       end: event.all_day ? dayKey(new Date(end.getTime() - 1)) : toLocalInput(end),
       calendarId: String(event.calendar_id),
       priority: event.priority,
@@ -95,7 +90,6 @@ function initialState(event?: CalendarEvent, day?: string | null): FormState {
       reminder: event.reminder_minutes == null ? "" : String(event.reminder_minutes),
     };
   }
-  // New event: the chosen day (or today) at the next full hour, one hour long.
   const base = parseDayKey(day ?? null) ?? new Date();
   const now = new Date();
   const hour = day && !sameLocalDay(base, now) ? 10 : now.getHours() + 1;
@@ -158,7 +152,6 @@ export function EventForm({
   const [saving, setSaving] = useState(false);
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => setState((current) => ({ ...current, [key]: value }));
 
-  // Moving the start keeps the duration, like most calendars do.
   const changeStart = (value: string) => {
     setState((current) => {
       if (current.allDay) {

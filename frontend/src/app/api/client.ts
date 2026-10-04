@@ -27,13 +27,11 @@ export class ApiError extends Error {
   }
 }
 
-// Called when the session can't be refreshed, so the app can show the login page.
 let unauthorizedHandler: () => void = () => {};
 export const onUnauthorized = (handler: () => void) => {
   unauthorizedHandler = handler;
 };
 
-// Several requests can hit 401 at once; they share one refresh call.
 let refreshing: Promise<boolean> | null = null;
 function refreshSession(): Promise<boolean> {
   refreshing ??= fetch("/auth/refresh", { method: "POST", credentials: "same-origin" })
@@ -45,8 +43,6 @@ function refreshSession(): Promise<boolean> {
   return refreshing;
 }
 
-// Auth uses the backend's httpOnly cookies (same origin via the Vite/nginx proxy),
-// so no token handling is needed here: on 401 we refresh once and retry.
 async function send(path: string, init: RequestInit = {}, retry = true): Promise<Response> {
   const response = await fetch(path, { credentials: "same-origin", ...init });
   if (response.status === 401 && !path.startsWith("/auth/")) {
@@ -91,7 +87,6 @@ export const api = {
       request<TokenResponse>("/auth/register", json("POST", body)),
     login: (email: string, password: string) => request<TokenResponse>("/auth/login", json("POST", { email, password })),
     logout: () => request<{ status: string }>("/auth/logout", { method: "POST" }),
-    // Ends the sessions on every device.
     logoutAll: () => request<{ status: string }>("/auth/logout-all", { method: "POST" }),
   },
   me: {
@@ -102,7 +97,6 @@ export const api = {
     list: () => request<Calendar[]>("/api/calendars"),
     create: (body: { name: string; description?: string | null; timezone?: string }) =>
       request<Calendar>("/api/calendars", json("POST", { provider: "local", ...body })),
-    /** Download all events as an .ics file. */
     exportIcs: async () => {
       const response = await send("/api/calendar/export.ics");
       if (!response.ok) throw await errorFrom(response);
@@ -136,7 +130,6 @@ export const api = {
   },
   integrations: {
     list: () => request<Integration[]>("/api/integrations"),
-    // For OAuth providers (Google) the response is { authorization_url } to redirect to.
     connect: (slug: string, values: Record<string, unknown>) =>
       request<IntegrationConnection | { authorization_url: string }>(`/api/integrations/${slug}/connect`, json("POST", { values })),
     test: (slug: string) => request<{ status: string; account: string }>(`/api/integrations/${slug}/test`, { method: "POST" }),

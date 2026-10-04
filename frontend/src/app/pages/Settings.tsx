@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { api } from "../api/client";
 import type { ReminderSettings, Source, TelegramLink } from "../api/types";
-import { useAuth, useUser } from "../auth";
+import { ThemePicker } from "@/theme";
+import { useAuth, useSignOut, useUser } from "../auth";
 import { Icon } from "../components/icons";
 import { Badge, Button, Card, ConfirmButton, ErrorNote, Field, Loading, PageHeader, Switch, useErrorToast, useToast } from "../components/ui";
 import { SOURCE_LABELS, browserTimezone, errorText, formatDateTime, formatLead, stripTags } from "../lib/format";
@@ -10,6 +11,7 @@ import { useTitle } from "../router";
 
 const SECTIONS = [
   { id: "profile", label: "Профиль" },
+  { id: "appearance", label: "Оформление" },
   { id: "reminders", label: "Напоминания" },
   { id: "telegram", label: "Telegram" },
   { id: "calendars", label: "Календари" },
@@ -19,7 +21,6 @@ const SECTIONS = [
 export function SettingsPage() {
   useTitle("Настройки");
 
-  // Links like /settings#telegram: scroll once the sections have rendered.
   useEffect(() => {
     const id = window.location.hash.slice(1);
     if (!id) return;
@@ -38,6 +39,7 @@ export function SettingsPage() {
         ))}
       </nav>
       <ProfileSection />
+      <AppearanceSection />
       <RemindersSection />
       <TelegramSection />
       <CalendarsSection />
@@ -45,8 +47,6 @@ export function SettingsPage() {
     </div>
   );
 }
-
-/* ---------- Profile ---------- */
 
 function ProfileSection() {
   const user = useUser();
@@ -106,7 +106,18 @@ function ProfileSection() {
   );
 }
 
-/* ---------- Reminders ---------- */
+function AppearanceSection() {
+  return (
+    <div id="appearance" className="anchor">
+      <Card title="Оформление">
+        <p className="muted small">Тема сохраняется в этом браузере и действует на всём сайте.</p>
+        <div style={{ marginTop: 12 }}>
+          <ThemePicker />
+        </div>
+      </Card>
+    </div>
+  );
+}
 
 const LEAD_PRESETS = [0, 5, 10, 15, 30, 60, 120, 1440];
 const SOURCES: Source[] = ["local", "ai", "google", "apple", "jira", "notion", "obsidian"];
@@ -224,8 +235,6 @@ function RemindersSection() {
   );
 }
 
-/* ---------- Telegram ---------- */
-
 function TelegramSection() {
   const status = useAsync(() => api.telegram.status(), []);
   const history = useAsync(() => api.reminders.history(), []);
@@ -331,8 +340,6 @@ function TelegramSection() {
   );
 }
 
-/* ---------- Calendars and export ---------- */
-
 function CalendarsSection() {
   const calendars = useAsync(() => api.calendars.list(), []);
   const [name, setName] = useState("");
@@ -392,10 +399,8 @@ function CalendarsSection() {
   );
 }
 
-/* ---------- Security ---------- */
-
 function SecuritySection() {
-  const { logout } = useAuth();
+  const logout = useSignOut();
   return (
     <div id="security" className="anchor">
       <Card title="Безопасность">

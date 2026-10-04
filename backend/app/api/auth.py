@@ -25,11 +25,9 @@ from app.schemas import LoginRequest, RefreshRequest, RegisterRequest, TokenResp
 session_router = APIRouter(prefix="/auth", tags=["auth"])
 auth_router = APIRouter(prefix="/auth/google", tags=["auth"])
 
-# Password guessing throttle, per email. In-process: enough for the single backend instance we run.
 LOGIN_WINDOW_SECONDS = 15 * 60
 LOGIN_MAX_FAILURES = 10
 _login_failures: dict[str, list[float]] = {}
-# A rotated refresh token still works this long, for parallel requests that refresh at the same time.
 REFRESH_REUSE_GRACE = timedelta(seconds=30)
 
 
@@ -43,9 +41,7 @@ def _recent_failures(email: str, now: float) -> list[float]:
 
 
 async def _token_response(session: AsyncSession, user_id: int, cookies: bool = True) -> JSONResponse:
-    """Issue an access/refresh pair. The refresh jti is stored so it can be rotated and revoked."""
     now = datetime.now(timezone.utc)
-    # Housekeeping: forget this user's expired refresh tokens.
     await session.execute(delete(RefreshToken).where(RefreshToken.user_id == user_id, RefreshToken.expires_at < now))
     access_token = create_access_token(user_id)
     refresh_token, jti, expires_at = create_refresh_token(user_id)
@@ -109,11 +105,6 @@ async def login(payload: LoginRequest, session: AsyncSession = Depends(get_sessi
 
 @session_router.post("/token", response_model=TokenResponse, include_in_schema=True)
 async def token(form: OAuth2PasswordRequestForm = Depends(), session: AsyncSession = Depends(get_session)):
-    """OAuth2 password flow for Swagger and API clients; `username` is the email.
-
-    Returns tokens in the body only: a form endpoint that set cookies could be used from another
-    site to log a visitor into someone else's account.
-    """
     user = await _authenticate(session, form.username.strip().lower(), form.password)
     return await _token_response(session, user.id, cookies=False)
 
@@ -148,8 +139,6 @@ async def refresh(
     if stored.rotated_at is None:
         stored.rotated_at = now
     elif now - stored.rotated_at > REFRESH_REUSE_GRACE:
-        # Parallel requests may refresh with the same token at once; a later replay of a rotated
-        # token means it was stolen, so every session of this user is ended.
         await _revoke_all(session, user_id, now)
         await session.commit()
         raise _session_expired()
@@ -173,7 +162,6 @@ async def logout(
     cookie_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE),
     session: AsyncSession = Depends(get_session),
 ):
-    """End this session: the refresh token is revoked, the cookies are cleared."""
     token = (payload.refresh_token if payload else None) or cookie_token
     try:
         _, jti = decode_refresh_token(token or "")
@@ -188,7 +176,6 @@ async def logout(
 
 @session_router.post("/logout-all")
 async def logout_all(user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
-    """End every session of the current user (all devices). Access tokens expire within JWT_EXPIRE_MINUTES."""
     await _revoke_all(session, user.id, datetime.now(timezone.utc))
     await session.commit()
     return _logout_response()
@@ -274,7 +261,7 @@ async def google_callback(
     profile = profile_response.json()
     user = await session.get(User, user_id)
     if not user:
-        raise HTTPException(status_code=401, detail="Пользователь Focus Day не найден")
+        raise HTTPException(status_code=401, detail="Пользователь Dayla не найден")
     integration = await session.scalar(
         select(Integration).where(Integration.user_id == user_id, Integration.provider == "google")
     )
@@ -293,7 +280,6 @@ async def google_callback(
     else:
         integration = Integration(config={}, **values)
         session.add(integration)
-    # Google sends a refresh token only on the first consent; keep the stored one otherwise.
     tokens = {"access_token": token_data["access_token"]}
     refresh_token = token_data.get("refresh_token") or integration_secrets(integration).get("refresh_token")
     if refresh_token:
@@ -306,8 +292,6 @@ async def google_callback(
     if not google_calendar:
         session.add(Calendar(user_id=user_id, integration_id=integration.id, name="Google Calendar", provider="google", external_id="primary", timezone="UTC"))
     await session.commit()
-    # No new session is issued here: the state only proves who started the flow, so issuing tokens
-    # would let anyone log a victim into the attacker's account by sending them a callback link.
     return RedirectResponse(url="/?connected=google", status_code=303)
 
 

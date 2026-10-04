@@ -122,7 +122,6 @@ function groupByDay(events: CalendarEvent[]): [string, CalendarEvent[]][] {
   return [...groups.entries()];
 }
 
-/** One-line entry into the assistant: "встреча с Олей завтра в 15:00". */
 function QuickAsk() {
   const [text, setText] = useState("");
   const submit = (event: FormEvent) => {

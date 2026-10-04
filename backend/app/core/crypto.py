@@ -11,7 +11,6 @@ from app.core.config import settings
 def _fernet() -> Fernet:
     if settings.integrations_encryption_key:
         return Fernet(settings.integrations_encryption_key.encode())
-    # Fall back to a key derived from SECRET_KEY so local setups work without extra config.
     digest = hashlib.sha256(f"integrations:{settings.secret_key}".encode()).digest()
     return Fernet(base64.urlsafe_b64encode(digest))
 

@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-white text-gray-900;
+    @apply font-sans antialiased;
+    line-height: 1.5;
+  }
+
+  h1 { @apply text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight; }
+  h2 { @apply text-3xl md:text-4xl font-semibold tracking-tight; }
+  h3 { @apply text-2xl md:text-3xl font-semibold tracking-tight; }
+  h4 { @apply text-xl md:text-2xl font-semibold tracking-tight; }
+
+  a { @apply text-blue-600 transition-colors duration-200; }
+  a:hover { @apply text-blue-700; }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+  }
+
+  input, select, textarea {
+    @apply border border-gray-200 rounded px-4 py-3 text-base transition-colors duration-200 bg-white;
+  }
+  input:focus, select:focus, textarea:focus {
+    @apply border-blue-500;
+  }
+
+  button { @apply transition-colors duration-200; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #c1c1c6; border-radius: 20%; }
+  ::-webkit-scrollbar-thumb:hover { background: #a0a0a5; }
+  * { scrollbar-width: thin; scrollbar-color: #c1c1c6 transparent; }
+
+  .dark body { @apply bg-gray-950 text-gray-100; }
+  .dark input, .dark select, .dark textarea { @apply bg-gray-800 border-gray-700 text-white; }
+  .dark ::-webkit-scrollbar-thumb { background: #4a4a4e; }
+  .dark ::-webkit-scrollbar-thumb:hover { background: #5e5e62; }
+  .dark * { scrollbar-color: #4a4a4e transparent; }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/70 dark:bg-gray-800/80 backdrop-blur-md border border-white/20 dark:border-gray-700/30 shadow-apple dark:shadow-apple-dark rounded-2xl transition-all duration-300;
+  }
+  .glass-card:hover {
+    @apply shadow-apple-hover dark:shadow-apple-dark;
+  }
+  .apple-gradient {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  .apple-gradient-dark {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  }
+  .theme-toggle {
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full;
+    @apply text-gray-600 hover:text-gray-900 hover:bg-gray-900/5;
+    @apply dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/10;
+  }
+  .text-eyebrow {
+    @apply text-xs md:text-sm uppercase tracking-[0.2em] font-medium;
+  }
+}
+
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
+  100% { transform: translateY(0px) rotate(-2deg); }
+}
+.float-animation {
+  animation: float 8s ease-in-out infinite;
+}
+.toasts { position: fixed; z-index: 100; right: 20px; bottom: 20px; display: grid; gap: 8px; max-width: min(380px, calc(100vw - 32px)); font-family: "Inter Variable", Inter, system-ui, sans-serif; }
+.toast { padding: 12px 16px; border-radius: 14px; background: #0f172a; color: #f8fafc; box-shadow: 0 12px 40px rgba(15, 23, 42, 0.25); animation: fd-rise 0.2s ease-out; font-size: 14px; }
+.dark .toast { background: #e5e7eb; color: #0f172a; }
+.toast-error, .dark .toast-error { background: #dc2626; color: #fff; }
+@keyframes fd-rise { from { opacity: 0; transform: translateY(8px); } }
+@media (max-width: 959px) { .toasts { left: 16px; right: 16px; bottom: calc(64px + 12px + env(safe-area-inset-bottom, 0px)); max-width: none; } }
+

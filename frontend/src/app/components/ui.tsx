@@ -11,8 +11,6 @@ import {
 } from "react";
 import { Icon, type IconName } from "./icons";
 
-/* ---------- Toasts ---------- */
-
 type ToastKind = "info" | "error";
 interface Toast {
   id: number;
@@ -46,13 +44,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 export const useToast = () => useContext(ToastContext);
 
-/** Convenience: an error reporter for useAction. */
 export function useErrorToast() {
   const toast = useToast();
   return useCallback((message: string) => toast(message, "error"), [toast]);
 }
-
-/* ---------- Buttons ---------- */
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary" | "ghost" | "danger";
@@ -75,8 +70,6 @@ export function Button({ variant = "secondary", icon, busy, size = "md", childre
     </button>
   );
 }
-
-/* ---------- Layout bits ---------- */
 
 export function PageHeader({ title, subtitle, actions }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
@@ -140,8 +133,6 @@ export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "ok" 
   return <span className={`badge badge-${tone}`}>{children}</span>;
 }
 
-/* ---------- Form fields ---------- */
-
 export function Field({ label, hint, children, className = "" }: { label: string; hint?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <label className={`field ${className}`}>
@@ -164,8 +155,6 @@ export function Switch({ checked, onChange, label, hint }: { checked: boolean; o
     </label>
   );
 }
-
-/* ---------- Dialog ---------- */
 
 export function Dialog({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -195,7 +184,6 @@ export function Dialog({ open, title, onClose, children }: { open: boolean; titl
   );
 }
 
-/** Two-step confirmation inside the page (no browser confirm()). */
 export function ConfirmButton({
   children,
   label,
@@ -206,7 +194,6 @@ export function ConfirmButton({
   size,
 }: {
   children?: ReactNode;
-  /** Accessible name for an icon-only button. */
   label?: string;
   confirmLabel?: string;
   onConfirm: () => void;
@@ -231,9 +218,6 @@ export function ConfirmButton({
   );
 }
 
-/* ---------- Error boundary ---------- */
-
-/** Keeps a crash in one page from blanking the whole app; reset by changing `key`. */
 export class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null };
 

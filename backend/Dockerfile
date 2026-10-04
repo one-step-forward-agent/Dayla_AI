@@ -28,5 +28,4 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
 
 EXPOSE 8000
 
-# Runs migrations, then uvicorn, as the unprivileged "app" user (see docker-entrypoint.sh).
 CMD ["docker-entrypoint.sh"]

@@ -137,7 +137,6 @@ class Integration(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     provider: Mapped[str] = mapped_column(String(30))
     account_email: Mapped[str | None] = mapped_column(String(320))
-    # Fernet-encrypted JSON with the provider's secrets (Google OAuth tokens included).
     credentials_encrypted: Mapped[str | None] = mapped_column(Text)
     config: Mapped[dict] = mapped_column(JSONB, default=dict)
     token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -148,8 +147,6 @@ class Integration(Base):
     calendars: Mapped[list[Calendar]] = relationship(back_populates="integration")
 
 class EventLink(Base):
-    """An event exported to an external service (Apple, Jira, Notion, Obsidian)."""
-
     __tablename__ = "event_links"
     __table_args__ = (UniqueConstraint("event_id", "integration_id", name="uq_event_links_event_integration"),)
 
@@ -178,8 +175,6 @@ class ReminderSettings(Base):
 
 
 class Notification(Base):
-    """Outbox of Telegram messages; the bot claims pending rows and acknowledges delivery."""
-
     __tablename__ = "notifications"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -199,12 +194,6 @@ class Notification(Base):
 
 
 class RefreshToken(Base):
-    """Issued refresh tokens by jti.
-
-    rotated_at: exchanged for a new pair by /auth/refresh (still accepted for a short grace period).
-    revoked_at: ended by logout, logout-all or detected token theft (never accepted again).
-    """
-
     __tablename__ = "refresh_tokens"
 
     jti: Mapped[str] = mapped_column(String(32), primary_key=True)
@@ -213,3 +202,13 @@ class RefreshToken(Base):
     rotated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ConversationMessage(Base):
+    __tablename__ = "conversation_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    role: Mapped[str] = mapped_column(Text)
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

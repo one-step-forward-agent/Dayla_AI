@@ -36,7 +36,6 @@ def create_access_token(user_id: int) -> str:
 
 
 def create_refresh_token(user_id: int) -> tuple[str, str, datetime]:
-    """Return the token, its jti and expiry; the jti must be stored so the token can be revoked."""
     return _create_token(user_id, REFRESH_TOKEN, timedelta(days=settings.jwt_refresh_expire_days))
 
 

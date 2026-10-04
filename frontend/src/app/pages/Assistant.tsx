@@ -30,7 +30,6 @@ export function AssistantPage() {
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Block body: scrollIntoView returns a Promise in recent browsers, which React would treat as a cleanup.
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, busy]);
@@ -63,8 +62,6 @@ export function AssistantPage() {
     }
   };
 
-  // "/assistant?q=..." from the quick input on the Today page.
-  // The ref keeps StrictMode's double effect run from sending it twice.
   const initial = query.get("q");
   const handled = useRef<string | null>(null);
   useEffect(() => {

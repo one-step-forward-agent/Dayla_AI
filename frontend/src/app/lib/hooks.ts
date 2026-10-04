@@ -9,7 +9,6 @@ export interface AsyncState<T> {
   setData: (data: T) => void;
 }
 
-/** Load data on mount and whenever deps change; stale responses are ignored. */
 export function useAsync<T>(load: () => Promise<T>, deps: DependencyList): AsyncState<T> {
   const [data, setData] = useState<T>();
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +39,6 @@ export function useAsync<T>(load: () => Promise<T>, deps: DependencyList): Async
   return { data, error, loading, reload, setData };
 }
 
-/** Run an action with a pending flag; errors are reported through onError. */
 export function useAction(onError: (message: string) => void) {
   const [pending, setPending] = useState<string | null>(null);
   const run = useCallback(

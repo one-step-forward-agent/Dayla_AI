@@ -19,7 +19,6 @@ export function startOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
-/** Monday of the week that contains date. */
 export function startOfWeek(date: Date): Date {
   const day = startOfDay(date);
   return addDays(day, -((day.getDay() + 6) % 7));
@@ -29,7 +28,6 @@ export function sameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-/** "2026-10-04" in local time, used in URLs and date inputs. */
 export function dayKey(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
@@ -40,7 +38,6 @@ export function parseDayKey(value: string | null): Date | null {
   return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
 }
 
-/** Value for <input type="datetime-local">. */
 export function toLocalInput(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, "0");
   return `${dayKey(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -57,7 +54,6 @@ export const formatMonth = (date: Date) => {
 };
 export const formatWeekday = (date: Date, style: "short" | "long" = "long") => date.toLocaleDateString(LOCALE, { weekday: style });
 
-/** "Сегодня", "Завтра" or "пт, 9 октября". */
 export function relativeDay(date: Date, now = new Date()): string {
   const diff = Math.round((startOfDay(date).getTime() - startOfDay(now).getTime()) / DAY);
   if (diff === 0) return "Сегодня";
@@ -74,7 +70,6 @@ export function eventTimeRange(event: CalendarEvent): string {
   return `${formatTime(start)} – ${formatDate(end, { day: "numeric", month: "short" })} ${formatTime(end)}`;
 }
 
-/** Does the event overlap the local day? */
 export function occursOn(event: CalendarEvent, day: Date): boolean {
   const dayStart = startOfDay(day).getTime();
   const dayEnd = dayStart + DAY;
@@ -103,7 +98,7 @@ export const PRIORITIES: { value: Priority; label: string }[] = [
 ];
 
 export const SOURCE_LABELS: Record<string, string> = {
-  local: "Focus Day",
+  local: "Dayla",
   ai: "Ассистент",
   google: "Google",
   apple: "Apple",
@@ -112,7 +107,6 @@ export const SOURCE_LABELS: Record<string, string> = {
   obsidian: "Obsidian",
 };
 
-/** Reminder texts are Telegram HTML; show them as plain text. */
 export const stripTags = (text: string) =>
   text.replace(/<[^>]*>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
 

@@ -17,10 +17,6 @@ logger = logging.getLogger(__name__)
 
 @cache
 def _ssl_context() -> ssl.SSLContext | bool:
-    """GigaChat certificates are issued by the Russian Trusted Root CA, which is not in the default trust store.
-
-    With GIGACHAT_CA_BUNDLE pointing at that CA (PEM) the certificate is verified; without it verification is skipped.
-    """
     if not settings.gigachat_ca_bundle:
         logger.warning("GIGACHAT_CA_BUNDLE is not set; GigaChat TLS certificates are not verified")
         return False
@@ -338,6 +334,38 @@ class GigaChatClient:
                 result = await response.json()
         return parse_search_filters_response(result["choices"][0]["message"]["content"])
 
+    async def chat_reply(self, text: str, timezone: str = "Europe/Moscow", context: str = "", name: str | None = None) -> str:
+        now = datetime.now(ZoneInfo(timezone))
+        system = (
+            "Ты — Dayla, дружелюбный и собранный ИИ-ассистент по планированию дня. "
+            "Ты общаешься с пользователем в Telegram и умеешь добавлять события в его календарь, "
+            "показывать расписание и присылать напоминания. "
+            "Отвечай по-русски, тепло и по делу: до 5–6 коротких предложений или короткий список. "
+            "Не используй markdown, заголовки и таблицы. Не выдумывай события и факты о расписании пользователя. "
+            "Если пользователь хочет что-то запланировать, но не указал дату или время, коротко уточни, когда это сделать. "
+            f"Сейчас {now:%d.%m.%Y %H:%M}, часовой пояс {timezone}."
+            + (f" Пользователя зовут {name}." if name else "")
+        )
+        user_message = (
+            "Недавний диалог (справочно):\n"
+            f"{context or '(пусто)'}\n\n"
+            f"Сообщение пользователя:\n{text[:6000]}"
+        )
+        async with aiohttp.ClientSession() as session:
+            token = await self._token(session)
+            headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+            payload = {
+                "model": settings.gigachat_model,
+                "messages": [{"role": "system", "content": system}, {"role": "user", "content": user_message}],
+                "temperature": 0.5,
+                "max_tokens": 600,
+            }
+            async with session.post(
+                self.chat_url, headers=headers, json=payload, ssl=_ssl_context()
+            ) as response:
+                response.raise_for_status()
+                result = await response.json()
+        return result["choices"][0]["message"]["content"].strip()
+
     async def extract_events(self, text: str, timezone: str = "Europe/Moscow") -> list[dict]:
-        """Compatibility wrapper for callers that only need event extraction."""
         return (await self.process_message(text, timezone))["events"]

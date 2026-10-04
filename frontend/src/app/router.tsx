@@ -1,24 +1,30 @@
-import { useEffect, useSyncExternalStore, type AnchorHTMLAttributes, type MouseEvent } from "react";
+import { useEffect, useMemo, type AnchorHTMLAttributes } from "react";
+import { Link as RouterLink, Navigate, useLocation as useRouterLocation, useNavigate, type NavigateFunction } from "react-router-dom";
 
-// A tiny history-API router: the app has a handful of pages, so a dependency isn't worth it.
-// nginx (try_files ... /index.html) and Vite serve index.html for every path.
+export const APP_BASE = "/app";
 
-const listeners = new Set<() => void>();
-const notify = () => listeners.forEach((listener) => listener());
-window.addEventListener("popstate", notify);
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+export function appPath(to: string): string {
+  if (to === APP_BASE || to.startsWith(`${APP_BASE}/`) || to.startsWith(`${APP_BASE}?`)) return to;
+  if (to === "/" || to.startsWith("/?") || to.startsWith("/#")) return APP_BASE + to.slice(1);
+  return APP_BASE + to;
 }
 
-const snapshot = () => window.location.pathname + window.location.search;
+let routerNavigate: NavigateFunction | null = null;
+
+export function NavigationBridge() {
+  const navigateFn = useNavigate();
+  const { pathname } = useRouterLocation();
+  useEffect(() => {
+    routerNavigate = navigateFn;
+  }, [navigateFn]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 export function navigate(to: string, { replace = false } = {}) {
-  if (to === snapshot()) return;
-  window.history[replace ? "replaceState" : "pushState"](null, "", to);
-  window.scrollTo(0, 0);
-  notify();
+  routerNavigate?.(appPath(to), { replace });
 }
 
 export interface Location {
@@ -27,12 +33,13 @@ export interface Location {
 }
 
 export function useLocation(): Location {
-  const current = useSyncExternalStore(subscribe, snapshot);
-  const url = new URL(current, window.location.origin);
-  return { path: url.pathname, query: url.searchParams };
+  const { pathname, search } = useRouterLocation();
+  return useMemo(() => {
+    const inside = pathname === APP_BASE ? "/" : pathname.startsWith(`${APP_BASE}/`) ? pathname.slice(APP_BASE.length) : pathname;
+    return { path: inside.replace(/\/+$/, "") || "/", query: new URLSearchParams(search) };
+  }, [pathname, search]);
 }
 
-/** Match "/events/:id" against a path; returns the params or null. */
 export function match(pattern: string, path: string): Record<string, string> | null {
   const patternParts = pattern.split("/").filter(Boolean);
   const pathParts = path.split("/").filter(Boolean);
@@ -48,26 +55,16 @@ export function match(pattern: string, path: string): Record<string, string> | n
 
 type LinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & { to: string };
 
-export function Link({ to, onClick, ...props }: LinkProps) {
-  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
-    onClick?.(event);
-    // Let the browser handle new-tab clicks and modified clicks.
-    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    event.preventDefault();
-    navigate(to);
-  };
-  return <a href={to} onClick={handleClick} {...props} />;
+export function Link({ to, ...props }: LinkProps) {
+  return <RouterLink to={appPath(to)} {...props} />;
 }
 
 export function Redirect({ to }: { to: string }) {
-  useEffect(() => {
-    navigate(to, { replace: true });
-  }, [to]);
-  return null;
+  return <Navigate to={appPath(to)} replace />;
 }
 
 export function useTitle(title: string) {
   useEffect(() => {
-    document.title = title ? `${title} · Focus Day` : "Focus Day";
+    document.title = title ? `${title} · Dayla` : "Dayla";
   }, [title]);
 }

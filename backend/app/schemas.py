@@ -239,3 +239,16 @@ class BotAckRequest(BaseModel):
     ok: bool
     error: str | None = None
     chat_unreachable: bool = False
+
+
+class BotChatRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=50000)
+
+
+class BotUndoRequest(BaseModel):
+    event_ids: list[int] = Field(min_length=1, max_length=50)
+
+
+class BotSnoozeRequest(BaseModel):
+    chat_id: int
+    minutes: int = Field(ge=5, le=1440)

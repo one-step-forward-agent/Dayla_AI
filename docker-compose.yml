@@ -1,7 +1,3 @@
-# Whole stack in one command:  docker compose up -d --build
-# Frontend: http://localhost:3000   Backend (API, /docs, legacy HTML page): http://localhost:8000
-# Backend and bot share one Postgres database. Only the backend runs migrations:
-# its Alembic chain already contains every bot migration.
 x-db-url: &db-url postgresql+asyncpg://${POSTGRES_USER:-focus_day}:${POSTGRES_PASSWORD:-focus_day}@db:5432/${POSTGRES_DB:-focus_day}
 
 services:
@@ -26,7 +22,6 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      # The local stack runs over plain HTTP; the image itself defaults to APP_ENV=production checks.
       APP_ENV: development
       DATABASE_URL: *db-url
       STORAGE_PATH: /app/storage
@@ -48,12 +43,9 @@ services:
   bot:
     build: ./tg_bot
     restart: unless-stopped
-    # Skip the bot's own migrations; the backend has already migrated the shared database.
-    command: ["python", "-m", "bot.main"]
     env_file:
       - ./tg_bot/.env
     environment:
-      DATABASE_URL: *db-url
       BACKEND_URL: http://app:8000
       BOT_API_TOKEN: ${BOT_API_TOKEN:-local-bot-token}
     depends_on:

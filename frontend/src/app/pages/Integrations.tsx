@@ -6,6 +6,14 @@ import { errorText, formatDateTime } from "../lib/format";
 import { useAction, useAsync } from "../lib/hooks";
 import { useTitle } from "../router";
 
+const LOGOS: Record<string, string> = {
+  google: "/images/google-calendar.png",
+  apple: "/images/Календарь_для_macOS.png",
+  jira: "/images/Jira_Software_Logo.svg",
+  notion: "/images/Notion.png",
+  obsidian: "/images/Obsidian.png",
+};
+
 export function IntegrationsPage() {
   useTitle("Интеграции");
   const integrations = useAsync(() => api.integrations.list(), []);
@@ -13,7 +21,7 @@ export function IntegrationsPage() {
 
   return (
     <div className="page">
-      <PageHeader title="Интеграции" subtitle="Импортируйте события и задачи из сервисов и отправляйте события Focus Day обратно." />
+      <PageHeader title="Интеграции" subtitle="Импортируйте события и задачи из сервисов и отправляйте события Dayla обратно." />
       {integrations.error && <ErrorNote message={integrations.error} onRetry={integrations.reload} />}
       {!integrations.data ? (
         integrations.loading && <Loading />
@@ -63,7 +71,7 @@ function IntegrationCard({ item, onEdit, onChanged }: { item: Integration; onEdi
     <Card className="integration">
       <div className="integration-head">
         <span className={`integration-logo logo-${item.slug}`} aria-hidden="true">
-          {item.title.charAt(0)}
+          {LOGOS[item.slug] ? <img src={LOGOS[item.slug]} alt="" /> : item.title.charAt(0)}
         </span>
         <div>
           <h2>{item.title}</h2>

@@ -21,7 +21,7 @@ def google_event_body(event: EventPayload) -> dict[str, Any]:
 class GoogleIntegration(IntegrationProvider):
     slug = "google"
     title = "Google Calendar"
-    description = "OAuth 2.0: импорт событий из основного календаря и отправка событий Focus Day в Google."
+    description = "OAuth 2.0: импорт событий из основного календаря и отправка событий Dayla в Google."
     auth_type = "oauth"
     fields = []
     scoped_external_ids = False

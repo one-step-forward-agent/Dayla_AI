@@ -1,4 +1,3 @@
-# Amvera project "bot": aiogram long polling, no inbound HTTP. See ../amvera.md.
 meta:
   environment: docker
   toolchain:

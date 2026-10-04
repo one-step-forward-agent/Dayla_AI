@@ -1,5 +1,3 @@
-// Mirrors backend/app/schemas.py. Keep in sync when the API changes.
-
 export interface User {
   id: number;
   email: string;
@@ -79,7 +77,6 @@ export interface EventLink {
   provider: string;
 }
 
-/** An event suggested by the assistant; not saved until confirmed. */
 export interface ProposedEvent {
   title: string;
   starts_at: string;

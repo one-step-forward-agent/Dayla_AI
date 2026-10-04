@@ -172,8 +172,9 @@ same `integration_secrets` / `store_secrets` path as the other providers.
 sends `Strict-Transport-Security` when `COOKIE_SECURE=true`. nginx hides its version
 (`server_tokens off`).
 
-**Recommendation:** add a Content-Security-Policy once the legacy inline-script HTML client is
-retired.
+**Recommendation:** add a Content-Security-Policy. The legacy inline-script HTML client has
+been removed. The only inline script left is the theme script in `frontend/index.html`;
+allow it by hash.
 
 ## 11. Low: unbounded request lists
 
@@ -263,7 +264,7 @@ configuration.
 ## Still open
 
 - **DNS rebinding against the SSRF guard** (item 2). Pin the resolved IP, or use an egress proxy.
-- **Content-Security-Policy.** Add it once the legacy inline-script HTML client is retired.
+- **Content-Security-Policy.** The legacy HTML client is gone; add a CSP (allow the inline theme script in `frontend/index.html` by hash).
 - **Login throttle.** It's per-process (item 5). Move it to the database or Redis before running
   more than one backend instance.
 

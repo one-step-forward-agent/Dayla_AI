@@ -14,9 +14,9 @@ from app.core.config import settings
 from app.core.database import get_session
 from app.models.models import Calendar, Event, EventFile, Integration, User
 from app.schemas import AssistantConfirmation, AssistantMessage, AssistantResponse, CalendarCreate, CalendarRead, EventCreate, EventRead, EventUpdate, UserRead, UserUpdate
-from app.services.google_calendar import GoogleCalendarProvider
+from app.services.events import default_calendar, google_provider, push_new_events_to_google, remember_google_token
 from app.services.integrations.google import google_event_body
-from app.services.integrations.service import event_payload, integration_secrets, store_secrets
+from app.services.integrations.service import event_payload
 
 router = APIRouter(prefix="/api")
 ALLOWED_EXTENSIONS = {"pdf", "doc", "docx", "xls", "xlsx", "png", "jpg", "jpeg"}
@@ -43,50 +43,6 @@ async def _owned_file(session: AsyncSession, user: User, file_id: int) -> EventF
         raise HTTPException(status_code=404, detail="File not found")
     await _owned_event(session, user, record.event_id)
     return record
-
-
-async def _default_calendar(session: AsyncSession, user: User, timezone_name: str) -> Calendar:
-    calendar = await session.scalar(
-        select(Calendar).where(Calendar.user_id == user.id, Calendar.provider == "local").order_by(Calendar.id)
-    )
-    if not calendar:
-        calendar = Calendar(user_id=user.id, name="Личный календарь", provider="local", timezone=timezone_name)
-        session.add(calendar)
-        await session.flush()
-    return calendar
-
-
-async def _google_provider(session: AsyncSession, user_id: int) -> tuple[Integration | None, GoogleCalendarProvider | None]:
-    integration = await session.scalar(
-        select(Integration).where(Integration.user_id == user_id, Integration.provider == "google")
-    )
-    secrets = integration_secrets(integration) if integration else {}
-    if not secrets.get("access_token"):
-        return None, None
-    return integration, GoogleCalendarProvider(secrets["access_token"], secrets.get("refresh_token"))
-
-
-def _remember_google_token(integration: Integration, provider: GoogleCalendarProvider) -> None:
-    """Persist the access token if the provider refreshed it."""
-    store_secrets(integration, {"access_token": provider.access_token})
-
-
-async def _push_new_events_to_google(session: AsyncSession, user_id: int, events: list[Event]) -> None:
-    integration, provider = await _google_provider(session, user_id)
-    if not provider or not events:
-        return
-    for event in events:
-        try:
-            result = await provider.create_event("primary", google_event_body(event_payload(event)))
-            event.external_id = result.get("id")
-            event.sync_status = "synced"
-            event.source = "google"
-        except httpx.HTTPError:
-            event.sync_status = "error"
-    _remember_google_token(integration, provider)
-    await session.commit()
-    for event in events:
-        await session.refresh(event)
 
 
 @router.get("/me", response_model=UserRead)
@@ -134,12 +90,12 @@ async def create_event(payload: EventCreate, user: User = Depends(get_current_us
         raise HTTPException(status_code=422, detail="end_at must be later than start_at")
     values = payload.model_dump()
     calendar_id = values.pop("calendar_id")
-    calendar = await _owned_calendar(session, user, calendar_id) if calendar_id else await _default_calendar(session, user, payload.timezone)
+    calendar = await _owned_calendar(session, user, calendar_id) if calendar_id else await default_calendar(session, user, payload.timezone)
     event = Event(calendar_id=calendar.id, user_id=user.id, **values)
     session.add(event)
     await session.commit()
     await session.refresh(event)
-    await _push_new_events_to_google(session, user.id, [event])
+    await push_new_events_to_google(session, user.id, [event])
     return event
 
 
@@ -188,7 +144,7 @@ async def delete_event(event_id: int, user: User = Depends(get_current_user), se
 @router.post("/events/{event_id}/sync/google", response_model=EventRead)
 async def sync_event_to_google(event_id: int, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
     event = await _owned_event(session, user, event_id)
-    integration, provider = await _google_provider(session, user.id)
+    integration, provider = await google_provider(session, user.id)
     if not provider:
         raise HTTPException(status_code=503, detail="Google Calendar is not connected")
     calendar = await session.get(Calendar, event.calendar_id)
@@ -200,7 +156,7 @@ async def sync_event_to_google(event_id: int, user: User = Depends(get_current_u
         event.sync_status = "error"
         await session.commit()
         raise HTTPException(status_code=502, detail="Google Calendar request failed") from error
-    _remember_google_token(integration, provider)
+    remember_google_token(integration, provider)
     event.external_id = result.get("id")
     event.sync_status = "synced"
     event.source = "google"
@@ -212,7 +168,7 @@ async def sync_event_to_google(event_id: int, user: User = Depends(get_current_u
 @router.post("/calendars/{calendar_id}/sync")
 async def sync_calendar(calendar_id: int, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
     calendar = await _owned_calendar(session, user, calendar_id)
-    integration, provider = await _google_provider(session, user.id)
+    integration, provider = await google_provider(session, user.id)
     if not provider:
         raise HTTPException(status_code=503, detail="Google Calendar is not connected")
     try:
@@ -228,7 +184,7 @@ async def sync_calendar(calendar_id: int, user: User = Depends(get_current_user)
         if not local:
             session.add(Calendar(user_id=calendar.user_id, integration_id=integration.id, name=remote.get("summary", external_id), provider="google", external_id=external_id, timezone=remote.get("timeZone", "UTC")))
             imported += 1
-    _remember_google_token(integration, provider)
+    remember_google_token(integration, provider)
     await session.commit()
     return {"imported_calendars": imported, "available_calendars": len(remote_calendars)}
 
@@ -292,7 +248,7 @@ async def assistant_message(payload: AssistantMessage, user: User = Depends(get_
 
 @router.post("/assistant/confirm", response_model=AssistantResponse)
 async def confirm_assistant_events(payload: AssistantConfirmation, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
-    calendar = await _default_calendar(session, user, payload.timezone)
+    calendar = await default_calendar(session, user, payload.timezone)
     created_events = []
     for item in payload.events:
         try:
@@ -318,7 +274,7 @@ async def confirm_assistant_events(payload: AssistantConfirmation, user: User = 
     await session.commit()
     for event in created_events:
         await session.refresh(event)
-    await _push_new_events_to_google(session, user.id, created_events)
+    await push_new_events_to_google(session, user.id, created_events)
     return AssistantResponse(answer="События добавлены.", created_events=created_events)
 
 
@@ -339,7 +295,7 @@ async def export_calendar(user: User = Depends(get_current_user), session: Async
             for event in events
         ]
     )
-    return Response(content=content, media_type="text/calendar", headers={"Content-Disposition": "attachment; filename=focus-day.ics"})
+    return Response(content=content, media_type="text/calendar", headers={"Content-Disposition": "attachment; filename=dayla.ics"})
 
 
 @router.post("/assistant/search")

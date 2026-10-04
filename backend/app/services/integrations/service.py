@@ -33,7 +33,6 @@ def build_provider(integration: Integration, tz: str) -> IntegrationProvider:
 
 
 def store_secrets(integration: Integration, secrets: dict) -> None:
-    """Merge secrets into the encrypted blob; keys left out keep their stored value."""
     integration.credentials_encrypted = encrypt_json({**integration_secrets(integration), **secrets})
 
 
@@ -92,7 +91,6 @@ async def verify_integration(session: AsyncSession, user: User, integration: Int
 
 
 async def sync_integration(session: AsyncSession, user: User, integration: Integration) -> dict:
-    """Import remote items into the provider's local calendar. Missing items are not deleted."""
     tz = user_timezone(user)
     provider = build_provider(integration, tz)
     now = datetime.now(timezone.utc)

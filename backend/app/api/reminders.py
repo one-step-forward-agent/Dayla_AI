@@ -15,7 +15,6 @@ _bot_username: str | None = None
 
 
 async def bot_username() -> str | None:
-    """TELEGRAM_BOT_USERNAME, or the bot's username looked up once via getMe."""
     global _bot_username
     if settings.telegram_bot_username:
         return settings.telegram_bot_username.lstrip("@")
@@ -27,6 +26,11 @@ async def bot_username() -> str | None:
         except (httpx.HTTPError, KeyError, ValueError):
             return None
     return _bot_username
+
+
+@router.get("/public/config")
+async def public_config():
+    return {"telegram_bot_username": await bot_username(), "app_url": settings.public_app_url or None}
 
 
 @router.get("/reminders/settings", response_model=ReminderSettingsRead)

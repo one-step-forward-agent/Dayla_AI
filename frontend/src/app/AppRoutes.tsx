@@ -1,19 +1,17 @@
 import type { ReactNode } from "react";
-import { AuthProvider, useAuth } from "./auth";
+import { Navigate, useLocation as useRouterLocation } from "react-router-dom";
+import { useAuth } from "./auth";
 import { Layout } from "./components/Layout";
-import { Empty, Loading, ToastProvider } from "./components/ui";
+import { Empty, Loading } from "./components/ui";
 import { AssistantPage } from "./pages/Assistant";
-import { AuthPage } from "./pages/Auth";
 import { CalendarPage } from "./pages/CalendarPage";
 import { EventPage, NewEventPage } from "./pages/EventPage";
 import { IntegrationsPage } from "./pages/Integrations";
 import { SettingsPage } from "./pages/Settings";
 import { TodayPage } from "./pages/Today";
-import { Link, Redirect, match, useLocation, useTitle } from "./router";
+import { Link, match, useLocation, useTitle } from "./router";
+import "./app.css";
 
-const PUBLIC_PATHS = new Set(["/login", "/register"]);
-
-/** Pages for a logged-in user; the first matching pattern wins. */
 const ROUTES: [string, (params: Record<string, string>) => ReactNode][] = [
   ["/", () => <TodayPage />],
   ["/calendar", () => <CalendarPage />],
@@ -24,28 +22,35 @@ const ROUTES: [string, (params: Record<string, string>) => ReactNode][] = [
   ["/settings", () => <SettingsPage />],
 ];
 
-function Routes() {
+export default function AppRoutes() {
   const { user } = useAuth();
-  const { path, query } = useLocation();
+  const { path } = useLocation();
+  const routerLocation = useRouterLocation();
 
-  if (user === undefined) return <Loading label="Focus Day" />;
-
-  if (PUBLIC_PATHS.has(path)) {
-    return user ? <Redirect to="/" /> : <AuthPage key={path} mode={path === "/login" ? "login" : "register"} />;
+  if (user === undefined) {
+    return (
+      <div className="fd-app">
+        <Loading label="Dayla" />
+      </div>
+    );
   }
   if (!user) {
-    const here = path + (query.toString() ? `?${query}` : "");
-    return <Redirect to={here === "/" ? "/login" : `/login?next=${encodeURIComponent(here)}`} />;
+    const next = routerLocation.pathname + routerLocation.search + routerLocation.hash;
+    return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />;
   }
 
+  let page: ReactNode = <NotFound />;
   for (const [pattern, render] of ROUTES) {
     const params = match(pattern, path);
-    if (params) return <Layout>{render(params)}</Layout>;
+    if (params) {
+      page = render(params);
+      break;
+    }
   }
   return (
-    <Layout>
-      <NotFound />
-    </Layout>
+    <div className="fd-app">
+      <Layout>{page}</Layout>
+    </div>
   );
 }
 
@@ -57,15 +62,5 @@ function NotFound() {
         <Link to="/">На главную</Link>
       </Empty>
     </div>
-  );
-}
-
-export default function App() {
-  return (
-    <ToastProvider>
-      <AuthProvider>
-        <Routes />
-      </AuthProvider>
-    </ToastProvider>
   );
 }

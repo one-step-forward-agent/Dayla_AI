@@ -1,5 +1,7 @@
+import { Sparkles } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
-import { useAuth } from "../auth";
+import { ThemeToggle } from "@/theme";
+import { useAuth, useSignOut } from "../auth";
 import { Link, navigate, useLocation } from "../router";
 import { Icon, type IconName } from "./icons";
 import { ErrorBoundary, useToast } from "./ui";
@@ -14,12 +16,23 @@ const NAV: { to: string; label: string; short: string; icon: IconName }[] = [
 
 const isActive = (to: string, path: string) => (to === "/" ? path === "/" : path === to || path.startsWith(`${to}/`));
 
+export function Brand({ to = "/" }: { to?: string }) {
+  return (
+    <Link to={to} className="brand">
+      <span className="brand-mark" aria-hidden="true">
+        <Sparkles size={16} strokeWidth={2} />
+      </span>
+      Dayla
+    </Link>
+  );
+}
+
 export function Layout({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const signOut = useSignOut();
   const { path, query } = useLocation();
   const toast = useToast();
 
-  // The Google OAuth callback on the backend redirects to "/?connected=google".
   const connected = query.get("connected");
   useEffect(() => {
     if (connected === "google") {
@@ -31,10 +44,7 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <Link to="/" className="brand">
-          <span className="brand-mark" aria-hidden="true" />
-          Focus Day
-        </Link>
+        <Brand />
         <Link to="/events/new" className="btn btn-primary btn-md new-event">
           <Icon name="plus" size={18} /> Новое событие
         </Link>
@@ -54,20 +64,21 @@ export function Layout({ children }: { children: ReactNode }) {
             <span className="truncate">{user?.name || "Без имени"}</span>
             <span className="truncate muted">{user?.email}</span>
           </div>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => logout()} aria-label="Выйти" title="Выйти">
+          <ThemeToggle />
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={() => signOut()} aria-label="Выйти" title="Выйти">
             <Icon name="logout" size={18} />
           </button>
         </div>
       </aside>
 
       <header className="topbar">
-        <Link to="/" className="brand">
-          <span className="brand-mark" aria-hidden="true" />
-          Focus Day
-        </Link>
-        <Link to="/events/new" className="btn btn-primary btn-sm btn-icon" aria-label="Новое событие">
-          <Icon name="plus" size={18} />
-        </Link>
+        <Brand />
+        <div className="topbar-actions">
+          <ThemeToggle />
+          <Link to="/events/new" className="btn btn-primary btn-sm btn-icon" aria-label="Новое событие">
+            <Icon name="plus" size={18} />
+          </Link>
+        </div>
       </header>
 
       <main className="content" id="content">

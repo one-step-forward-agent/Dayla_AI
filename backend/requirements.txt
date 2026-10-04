@@ -1,5 +1,3 @@
-# Exact versions: builds are reproducible and upgrades are deliberate.
-# Upgrade: bump a version, rebuild, then run `pip-audit -r requirements.txt`.
 fastapi==0.142.2
 uvicorn[standard]==0.54.0
 sqlalchemy[asyncio]==2.1.3
