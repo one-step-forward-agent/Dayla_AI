@@ -4,48 +4,94 @@ map $http_x_forwarded_proto $forwarded_proto {
     ""      $scheme;
 }
 
+# Rate limits per client IP. Login/registration: brute force and mass sign-ups; assistant: paid
+# GigaChat requests; internal: the Telegram bot API; api: everything else.
+limit_req_zone $binary_remote_addr zone=auth:10m rate=10r/m;
+limit_req_zone $binary_remote_addr zone=assistant:10m rate=30r/m;
+limit_req_zone $binary_remote_addr zone=bot:1m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=api:10m rate=20r/s;
+
 server {
     listen 80;
     root /usr/share/nginx/html;
     server_tokens off;
+
+    # The real client address comes from the host nginx (X-Real-IP), which overwrites anything the
+    # client sent. Only trust it from local and Docker networks.
+    set_real_ip_from 127.0.0.1;
+    set_real_ip_from 10.0.0.0/8;
+    set_real_ip_from 172.16.0.0/12;
+    set_real_ip_from 192.168.0.0/16;
+    real_ip_header X-Real-IP;
+
+    limit_req_status 429;
 
     gzip on;
     gzip_comp_level 6;
     gzip_min_length 1024;
     gzip_types text/css application/javascript application/json image/svg+xml text/plain text/markdown;
 
+    set $csp "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+
+    # Inherited by every location below that doesn't set its own add_header
+    add_header Content-Security-Policy $csp always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "DENY" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), geolocation=(), payment=(), microphone=(self)" always;
 
-    location ~ ^/(api|auth|health|internal)(/|$) {
+    # Backend: used by every proxied location below
+    proxy_set_header Host $proxy_host;
+    proxy_set_header X-Forwarded-Host $http_host;
+    # Overwrite (not append) so the backend sees exactly one, trusted client address
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-Proto $forwarded_proto;
+    proxy_ssl_server_name on;
+    proxy_read_timeout 120s;
+    client_max_body_size 25m;
+
+    location ~ ^/auth/(login|register|token)$ {
+        limit_req zone=auth burst=5 nodelay;
         proxy_pass ${BACKEND_URL};
-        proxy_set_header Host $proxy_host;
-        proxy_set_header X-Forwarded-Host $http_host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $forwarded_proto;
-        proxy_ssl_server_name on;
-        proxy_read_timeout 120s;
-        client_max_body_size 25m;
+    }
+
+    location ^~ /api/assistant/ {
+        limit_req zone=assistant burst=10 nodelay;
+        proxy_pass ${BACKEND_URL};
+    }
+
+    location ^~ /internal/ {
+        limit_req zone=bot burst=50 nodelay;
+        proxy_pass ${BACKEND_URL};
+    }
+
+    location ~ ^/(api|auth|health)(/|$) {
+        limit_req zone=api burst=100 nodelay;
+        proxy_pass ${BACKEND_URL};
     }
 
     location /assets/ {
         add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header Content-Security-Policy $csp always;
         add_header X-Content-Type-Options "nosniff" always;
         try_files $uri =404;
     }
 
     location /images/ {
         add_header Cache-Control "public, max-age=604800";
+        add_header Content-Security-Policy $csp always;
         add_header X-Content-Type-Options "nosniff" always;
         try_files $uri =404;
     }
 
     location / {
         add_header Cache-Control "no-cache";
+        add_header Content-Security-Policy $csp always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-Frame-Options "DENY" always;
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), geolocation=(), payment=(), microphone=(self)" always;
         try_files $uri /index.html;
     }
 }

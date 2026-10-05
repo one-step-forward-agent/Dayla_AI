@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import require_bot
+from app.api.routes import limit_assistant
 from app.core.config import settings
 from app.core.database import get_session
 from app.models.models import Notification, User
@@ -56,6 +57,7 @@ async def get_user(chat_id: int, session: AsyncSession = Depends(get_session)):
 @router.post("/chat/{chat_id}")
 async def chat_message(chat_id: int, payload: BotChatRequest, session: AsyncSession = Depends(get_session)):
     user = await _user_by_chat(session, chat_id)
+    limit_assistant(user)
     try:
         return await chat.handle_message(session, user, payload.text)
     except chat.AssistantUnavailable:

@@ -86,7 +86,6 @@ BOT_API_TOKEN=<generated>
 | `SBER_SCOPE` / `GIGACHAT_MODEL` | `GIGACHAT_API_PERS` / `GigaChat` (or yours) |
 | `TELEGRAM_BOT_USERNAME` | bot username without `@` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | optional, for Google Calendar |
-| `GIGACHAT_CA_BUNDLE` | `/certs/russian_trusted_root_ca.pem` (step 7) |
 | `DEFAULT_TIMEZONE` | `Europe/Moscow` |
 
 Leave `CORS_ORIGINS`, `ENABLE_DOCS` and `ALLOW_PRIVATE_INTEGRATION_URLS` empty.
@@ -126,17 +125,14 @@ sudo certbot --nginx -d dayla.stxddd.ru --redirect -m <your-email> --agree-tos
 certbot adds the TLS settings and the HTTP→HTTPS redirect to the site file and installs a
 renewal timer (`systemctl list-timers | grep certbot`). The backend sends HSTS itself.
 
-## 7. GigaChat TLS certificate (recommended)
+## 7. GigaChat TLS certificate
 
-GigaChat's certificates are issued by the Russian Trusted Root CA, which isn't in the default
-trust store. Without it the backend doesn't verify GigaChat's certificate (a warning is logged).
-
-1. Download `russian_trusted_root_ca.cer` from the official Gosuslugi/Минцифры page and convert
-   it if needed: `openssl x509 -inform DER -in russian_trusted_root_ca.cer -out russian_trusted_root_ca.pem`
-   (if it's already PEM, just rename it).
-2. Put it at `/opt/dayla/deploy/certs/russian_trusted_root_ca.pem` (mounted read-only at `/certs`).
-3. Set `GIGACHAT_CA_BUNDLE=/certs/russian_trusted_root_ca.pem` in `backend/.env` and run
-   `docker compose -f docker-compose.prod.yml up -d app`.
+Nothing to do. GigaChat's certificates are issued by the Russian Trusted Root CA (Минцифры), which
+isn't in the default trust store, so the backend image ships it
+(`backend/certs/russian_trusted_root_ca.pem`, SHA-256
+`D2:6D:2D:02:31:B7:C3:9F:92:CC:73:85:12:BA:54:10:35:19:E4:40:5D:68:B5:BD:70:3E:97:88:CA:8E:CF:31`,
+valid until 2032) and verifies GigaChat with it. Leave `GIGACHAT_CA_BUNDLE` empty; set it only to
+use a different CA file.
 
 ## 8. Google OAuth
 
@@ -210,6 +206,23 @@ The bot needs no public domain (it uses long polling).
 | `TelegramConflictError` | Another copy of the bot (this server's, or a local one) is still running. |
 | Connection errors to `dayla.stxddd.ru` | The site is down or DNS/HTTPS is broken; check `https://dayla.stxddd.ru/health`. |
 
+## Security notes
+
+- **Rate limits** (frontend nginx, per client IP): login/registration 10/min, assistant 30/min, bot
+  API 10/s, the rest of the API 20/s. The backend also limits failed logins (10 per email and 30 per
+  IP per 15 minutes), registrations (10 per IP per hour) and, per user, assistant requests
+  (60/hour) and voice/document processing (30/hour). Limits are kept in memory: restarting the
+  backend resets them. They need the real client IP, which the host nginx passes in `X-Real-IP`
+  (already in `deploy/nginx/dayla.stxddd.ru.conf`).
+- **`BOT_API_TOKEN`** gives access to every Telegram-linked account through `/internal/bot/*`, which
+  is public because the bot runs on Amvera. Keep it only in this server's `.env` and as a secret in
+  Amvera. If it may have leaked, generate a new one, put it in both places and restart:
+  `docker compose -f docker-compose.prod.yml up -d app`, then restart the Amvera project.
+- **Google Calendar** links only to the Dayla account that is logged in in the same browser. If
+  someone opens a connect link created by another account, they get `403`.
+- **Integrations** (Jira, CalDAV, Obsidian) can't reach private or internal addresses; the server
+  connects only to the address it checked.
+
 ## Updates
 
 ```bash
@@ -221,7 +234,7 @@ It pulls `main`, rebuilds the images and restarts what changed.
 ## Backups
 
 ```bash
-sudo mkdir -p /var/backups/dayla && sudo chown "$USER": /var/backups/dayla
+sudo mkdir -p /var/backups/dayla && sudo chown "$USER": /var/backups/dayla && chmod 700 /var/backups/dayla
 ./deploy/backup.sh                         # writes /var/backups/dayla/dayla-<date>.sql.gz
 crontab -e                                 # add:
 # 30 3 * * * /opt/dayla/deploy/backup.sh >> /var/backups/dayla/backup.log 2>&1

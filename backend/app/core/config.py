@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
+BUNDLED_CA = Path(__file__).resolve().parents[2] / "certs" / "russian_trusted_root_ca.pem"
 PLACEHOLDER_SECRETS = {"", "change-me", "replace-with-a-random-secret", "local-bot-token", "same-value-as-backend"}
 
 
@@ -58,7 +59,8 @@ class Settings:
     default_timezone: str = os.getenv("DEFAULT_TIMEZONE", "Europe/Moscow")
     enable_docs: bool = _bool("ENABLE_DOCS", not _is_production())
     allow_private_integration_urls: bool = _bool("ALLOW_PRIVATE_INTEGRATION_URLS", not _is_production())
-    gigachat_ca_bundle: str = os.getenv("GIGACHAT_CA_BUNDLE", "")
+    # GigaChat uses the Russian Trusted Root CA (Минцифры); the certificate ships in backend/certs
+    gigachat_ca_bundle: str = os.getenv("GIGACHAT_CA_BUNDLE") or (str(BUNDLED_CA) if BUNDLED_CA.is_file() else "")
     cors_origins: tuple[str, ...] = _list("CORS_ORIGINS")
     public_app_url: str = os.getenv("PUBLIC_APP_URL", "").strip().rstrip("/")
 

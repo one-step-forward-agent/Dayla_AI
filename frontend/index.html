@@ -7,18 +7,7 @@
     <meta name="theme-color" content="#f7f8fc" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Dayla — планируйте день за минуту</title>
-    <script>
-      (function () {
-        var mode = "system";
-        try {
-          mode = localStorage.getItem("dayla-theme") || "system";
-        } catch (e) {}
-        var dark = mode === "dark" || (mode !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-        var root = document.documentElement;
-        root.classList.add(dark ? "dark" : "light");
-        root.style.colorScheme = dark ? "dark" : "light";
-      })();
-    </script>
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

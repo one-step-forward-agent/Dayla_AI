@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from app.services.integrations.base import GUARDED_HOOKS, ConfigField, EventPayload, IntegrationError, IntegrationProvider, PushResult, RemoteItem
+from app.services.integrations.base import ConfigField, EventPayload, IntegrationError, IntegrationProvider, PushResult, RemoteItem, guarded_client
 
 DEFAULT_JQL = "assignee = currentUser() AND statusCategory != Done"
 
@@ -28,7 +28,7 @@ class JiraIntegration(IntegrationProvider):
 
     async def _request(self, method: str, path: str, **kwargs) -> dict:
         try:
-            async with httpx.AsyncClient(timeout=20, auth=(self.config["email"], self.secrets["api_token"]), event_hooks=GUARDED_HOOKS) as client:
+            async with guarded_client(timeout=20, auth=(self.config["email"], self.secrets["api_token"])) as client:
                 response = await client.request(method, f"{self.site}{path}", headers={"Accept": "application/json"}, **kwargs)
         except (httpx.HTTPError, httpx.InvalidURL) as error:
             raise IntegrationError("Jira недоступна") from error

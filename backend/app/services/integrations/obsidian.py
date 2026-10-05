@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from app.services.integrations.base import GUARDED_HOOKS, ConfigField, EventPayload, IntegrationError, IntegrationProvider, PushResult, RemoteItem
+from app.services.integrations.base import ConfigField, EventPayload, IntegrationError, IntegrationProvider, PushResult, RemoteItem, guarded_client
 
 TASK_LINE = re.compile(r"^\s*[-*]\s+\[(?P<done>[ xX])\]\s+(?P<body>.+?)\s*$")
 DUE_DATE = re.compile(r"(?:📅|\[?due::)\s*(?P<date>\d{4}-\d{2}-\d{2})\]?")
@@ -60,7 +60,7 @@ class ObsidianIntegration(IntegrationProvider):
     async def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
         headers = {"Authorization": f"Bearer {self.secrets['api_key']}", **kwargs.pop("headers", {})}
         try:
-            async with httpx.AsyncClient(timeout=15, verify=bool(self.config.get("verify_ssl")), event_hooks=GUARDED_HOOKS) as client:
+            async with guarded_client(timeout=15, verify=bool(self.config.get("verify_ssl"))) as client:
                 response = await client.request(method, f"{self.config['base_url'].rstrip('/')}{path}", headers=headers, **kwargs)
         except (httpx.HTTPError, httpx.InvalidURL) as error:
             raise IntegrationError("Obsidian Local REST API недоступен — Obsidian запущен и адрес доступен с сервера?") from error

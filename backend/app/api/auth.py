@@ -3,19 +3,19 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
 import json
-import time
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import httpx
 import jwt
-from fastapi import APIRouter, Cookie, Depends, HTTPException, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import ACCESS_COOKIE, REFRESH_COOKIE, get_current_user
-from app.core.auth import create_access_token, create_refresh_token, decode_refresh_token, hash_password, verify_password
+from app.core import ratelimit
+from app.core.auth import create_access_token, decode_access_token, create_refresh_token, decode_refresh_token, hash_password, verify_password
 from app.core.config import settings
 from app.core.database import get_session
 from app.models.models import Calendar, Integration, RefreshToken, User
@@ -26,18 +26,12 @@ session_router = APIRouter(prefix="/auth", tags=["auth"])
 auth_router = APIRouter(prefix="/auth/google", tags=["auth"])
 
 LOGIN_WINDOW_SECONDS = 15 * 60
-LOGIN_MAX_FAILURES = 10
-_login_failures: dict[str, list[float]] = {}
+LOGIN_MAX_FAILURES_PER_EMAIL = 10
+# Many emails from one address (password spraying)
+LOGIN_MAX_FAILURES_PER_IP = 30
+REGISTER_WINDOW_SECONDS = 60 * 60
+REGISTER_MAX_PER_IP = 10
 REFRESH_REUSE_GRACE = timedelta(seconds=30)
-
-
-def _recent_failures(email: str, now: float) -> list[float]:
-    if len(_login_failures) > 10_000:
-        for key in [key for key, stamps in _login_failures.items() if not stamps or stamps[-1] < now - LOGIN_WINDOW_SECONDS]:
-            del _login_failures[key]
-    failures = [stamp for stamp in _login_failures.get(email, []) if stamp > now - LOGIN_WINDOW_SECONDS]
-    _login_failures[email] = failures
-    return failures
 
 
 async def _token_response(session: AsyncSession, user_id: int, cookies: bool = True) -> JSONResponse:
@@ -66,21 +60,29 @@ async def _token_response(session: AsyncSession, user_id: int, cookies: bool = T
     return response
 
 
-async def _authenticate(session: AsyncSession, email: str, password: str) -> User:
-    now = time.monotonic()
-    failures = _recent_failures(email, now)
-    if len(failures) >= LOGIN_MAX_FAILURES:
+async def _authenticate(session: AsyncSession, email: str, password: str, ip: str) -> User:
+    email_key, ip_key = f"login:email:{email}", f"login:ip:{ip}"
+    if ratelimit.is_limited(email_key, LOGIN_MAX_FAILURES_PER_EMAIL, LOGIN_WINDOW_SECONDS) or ratelimit.is_limited(
+        ip_key, LOGIN_MAX_FAILURES_PER_IP, LOGIN_WINDOW_SECONDS
+    ):
         raise HTTPException(status_code=429, detail="Слишком много попыток входа, попробуйте через 15 минут")
     user = await session.scalar(select(User).where(User.email == email, User.is_active.is_(True)))
     if not user or not verify_password(password, user.password_hash):
-        failures.append(now)
+        ratelimit.record(email_key)
+        ratelimit.record(ip_key)
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
-    _login_failures.pop(email, None)
+    ratelimit.reset(email_key)
     return user
 
 
 @session_router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(payload: RegisterRequest, session: AsyncSession = Depends(get_session)):
+async def register(payload: RegisterRequest, request: Request, session: AsyncSession = Depends(get_session)):
+    ratelimit.hit(
+        f"register:{ratelimit.client_ip(request)}",
+        REGISTER_MAX_PER_IP,
+        REGISTER_WINDOW_SECONDS,
+        "Слишком много регистраций с вашего адреса, попробуйте позже",
+    )
     if await session.scalar(select(User.id).where(User.email == payload.email)):
         raise HTTPException(status_code=409, detail="Пользователь с таким email уже существует")
     user = User(
@@ -98,14 +100,14 @@ async def register(payload: RegisterRequest, session: AsyncSession = Depends(get
 
 
 @session_router.post("/login", response_model=TokenResponse)
-async def login(payload: LoginRequest, session: AsyncSession = Depends(get_session)):
-    user = await _authenticate(session, payload.email, payload.password)
+async def login(payload: LoginRequest, request: Request, session: AsyncSession = Depends(get_session)):
+    user = await _authenticate(session, payload.email, payload.password, ratelimit.client_ip(request))
     return await _token_response(session, user.id)
 
 
 @session_router.post("/token", response_model=TokenResponse, include_in_schema=True)
-async def token(form: OAuth2PasswordRequestForm = Depends(), session: AsyncSession = Depends(get_session)):
-    user = await _authenticate(session, form.username.strip().lower(), form.password)
+async def token(request: Request, form: OAuth2PasswordRequestForm = Depends(), session: AsyncSession = Depends(get_session)):
+    user = await _authenticate(session, form.username.strip().lower(), form.password, ratelimit.client_ip(request))
     return await _token_response(session, user.id, cookies=False)
 
 
@@ -238,6 +240,7 @@ async def google_callback(
     code: str | None = None,
     state: str | None = None,
     error: str | None = None,
+    access_cookie: str | None = Cookie(default=None, alias=ACCESS_COOKIE),
     session: AsyncSession = Depends(get_session),
 ):
     if error:
@@ -247,6 +250,18 @@ async def google_callback(
     if not settings.google_client_id or not settings.google_client_secret:
         raise HTTPException(status_code=503, detail="Google OAuth is not configured")
     user_id, return_to = _validate_oauth_state(state)
+    # The Google account is linked only to the Dayla account that is logged in in this browser.
+    # Otherwise an attacker could send a victim their own authorization link and receive the
+    # victim's calendar in the attacker's account.
+    try:
+        session_user_id = decode_access_token(access_cookie or "")
+    except (jwt.InvalidTokenError, ValueError):
+        session_user_id = None
+    if session_user_id is None:
+        next_path = return_to or "/app/integrations"
+        return RedirectResponse(url=f"/login?next={quote(next_path, safe='/')}", status_code=303)
+    if session_user_id != user_id:
+        raise HTTPException(status_code=403, detail="Ссылка подключения Google создана для другого аккаунта Dayla")
     async with httpx.AsyncClient(timeout=15) as client:
         response = await client.post(
             "https://oauth2.googleapis.com/token",

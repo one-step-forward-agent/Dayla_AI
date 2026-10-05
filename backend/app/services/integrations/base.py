@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, ClassVar
 
+import httpcore
 import httpx
 
 from app.core.config import settings
@@ -22,20 +23,49 @@ class PushNotSupported(IntegrationError):
 async def guard_request(request: httpx.Request) -> None:
     if request.url.scheme not in ("http", "https"):
         raise IntegrationError("Поддерживаются только адреса http(s)")
-    if settings.allow_private_integration_urls:
-        return
-    host = request.url.host
-    try:
-        infos = await asyncio.get_running_loop().getaddrinfo(host, request.url.port or 443, type=socket.SOCK_STREAM)
-    except socket.gaierror as error:
-        raise IntegrationError(f"Не удалось найти сервер {host}") from error
-    for info in infos:
-        address = ipaddress.ip_address(info[4][0].split("%", 1)[0])
-        if not address.is_global:
-            raise IntegrationError(f"Адрес {host} указывает во внутреннюю сеть — такие адреса запрещены")
 
 
 GUARDED_HOOKS = {"request": [guard_request]}
+
+
+async def _public_address(host: str, port: int) -> str:
+    """Resolve `host` and return an address only if every resolved address is public."""
+    try:
+        infos = await asyncio.get_running_loop().getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except socket.gaierror as error:
+        raise IntegrationError(f"Не удалось найти сервер {host}") from error
+    addresses = [info[4][0].split("%", 1)[0] for info in infos]
+    if not addresses or any(not ipaddress.ip_address(address).is_global for address in addresses):
+        raise IntegrationError(f"Адрес {host} указывает во внутреннюю сеть — такие адреса запрещены")
+    return addresses[0]
+
+
+class _PublicOnlyBackend(httpcore.AsyncNetworkBackend):
+    """Connects to the exact address that passed the check, so DNS can't switch to an internal
+    address between the check and the connection (DNS rebinding). TLS still uses the hostname."""
+
+    def __init__(self, inner: httpcore.AsyncNetworkBackend):
+        self._inner = inner
+
+    async def connect_tcp(self, host, port, timeout=None, local_address=None, socket_options=None):
+        address = await _public_address(host, port)
+        return await self._inner.connect_tcp(address, port, timeout=timeout, local_address=local_address, socket_options=socket_options)
+
+    async def connect_unix_socket(self, path, timeout=None, socket_options=None):
+        raise IntegrationError("Подключение через unix-сокет запрещено")
+
+    async def sleep(self, seconds: float) -> None:
+        await self._inner.sleep(seconds)
+
+
+def guarded_client(*, verify: bool = True, **kwargs) -> httpx.AsyncClient:
+    """HTTP client for user-supplied URLs (Jira, CalDAV, Obsidian): http(s) only and, in
+    production, public addresses only. Environment proxies are ignored so they can't bypass it."""
+    transport = httpx.AsyncHTTPTransport(verify=verify)
+    if not settings.allow_private_integration_urls:
+        pool = transport._pool
+        pool._network_backend = _PublicOnlyBackend(pool._network_backend)
+    return httpx.AsyncClient(transport=transport, event_hooks=GUARDED_HOOKS, trust_env=False, **kwargs)
 
 
 @dataclass(frozen=True)

@@ -8,7 +8,7 @@ import httpx
 from icalendar import Calendar as ICalendar
 from icalendar import Event as IEvent
 
-from app.services.integrations.base import GUARDED_HOOKS, ConfigField, EventPayload, IntegrationError, IntegrationProvider, PushResult, RemoteItem
+from app.services.integrations.base import ConfigField, EventPayload, IntegrationError, IntegrationProvider, PushResult, RemoteItem, guarded_client
 
 NS = {"d": "DAV:", "c": "urn:ietf:params:xml:ns:caldav"}
 
@@ -48,11 +48,10 @@ class AppleCalendarIntegration(IntegrationProvider):
     ]
 
     def _client(self) -> httpx.AsyncClient:
-        return httpx.AsyncClient(
+        return guarded_client(
             auth=(self.config["username"], self.secrets["app_password"]),
             timeout=20,
             follow_redirects=True,
-            event_hooks=GUARDED_HOOKS,
             headers={"Content-Type": "application/xml; charset=utf-8"},
         )
 

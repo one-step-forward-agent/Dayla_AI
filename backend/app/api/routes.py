@@ -5,11 +5,13 @@ from uuid import uuid4
 
 import httpx
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
+from app.core import ratelimit
 from app.core.config import settings
 from app.core.database import get_session
 from app.models.models import Calendar, Event, EventFile, Integration, User
@@ -19,6 +21,18 @@ from app.services.integrations.google import google_event_body
 from app.services.integrations.service import event_payload
 
 router = APIRouter(prefix="/api")
+
+# Per-user limits on paid/heavy work (GigaChat requests, speech recognition, document parsing)
+ASSISTANT_LIMIT, ASSISTANT_WINDOW = 60, 60 * 60
+UPLOAD_LIMIT, UPLOAD_WINDOW = 30, 60 * 60
+
+
+def limit_assistant(user: User) -> None:
+    ratelimit.hit(f"assistant:{user.id}", ASSISTANT_LIMIT, ASSISTANT_WINDOW, "Слишком много запросов к ассистенту, попробуйте через час")
+
+
+def limit_uploads(user: User) -> None:
+    ratelimit.hit(f"uploads:{user.id}", UPLOAD_LIMIT, UPLOAD_WINDOW, "Слишком много файлов, попробуйте через час")
 ALLOWED_EXTENSIONS = {"pdf", "doc", "docx", "xls", "xlsx", "png", "jpg", "jpeg"}
 AUDIO_EXTENSIONS = {".webm", ".ogg", ".oga", ".opus", ".mp3", ".m4a", ".mp4", ".wav", ".aac"}
 
@@ -237,6 +251,7 @@ async def delete_file(file_id: int, user: User = Depends(get_current_user), sess
 async def assistant_message(payload: AssistantMessage, user: User = Depends(get_current_user)):
     if not settings.gigachat_credentials:
         raise HTTPException(status_code=503, detail="GigaChat is not configured")
+    limit_assistant(user)
     from services.gigachat import GigaChatClient
 
     try:
@@ -302,6 +317,7 @@ async def export_calendar(user: User = Depends(get_current_user), session: Async
 async def assistant_search(payload: AssistantMessage, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
     if not settings.gigachat_credentials:
         raise HTTPException(status_code=503, detail="GigaChat is not configured")
+    limit_assistant(user)
     from services.gigachat import GigaChatClient
 
     try:
@@ -325,13 +341,15 @@ async def extract_file_text(file_id: int, user: User = Depends(get_current_user)
     from services.text_extractors import extract_document
 
     try:
-        return {"file_id": file_id, "text": extract_document(record.storage_path)}
+        limit_uploads(user)
+        return {"file_id": file_id, "text": await run_in_threadpool(extract_document, record.storage_path)}
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
 
 
 @router.post("/assistant/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...), user: User = Depends(get_current_user)):
+    limit_uploads(user)
     suffix = Path(audio.filename or "audio").suffix.lower()
     if suffix not in AUDIO_EXTENSIONS:
         suffix = ".audio"
@@ -344,7 +362,10 @@ async def transcribe_audio(audio: UploadFile = File(...), user: User = Depends(g
     try:
         from services.speech import recognize_audio
 
-        return {"text": recognize_audio(str(target))}
+        # ffmpeg and speech recognition block; keep them off the event loop so other requests go on
+        return {"text": await run_in_threadpool(recognize_audio, str(target))}
+    except subprocess.TimeoutExpired as error:
+        raise HTTPException(status_code=422, detail="Аудиофайл обрабатывается слишком долго") from error
     except subprocess.CalledProcessError as error:
         raise HTTPException(status_code=422, detail="Не удалось прочитать аудиофайл") from error
     except (RuntimeError, ValueError) as error:
@@ -356,6 +377,7 @@ async def transcribe_audio(audio: UploadFile = File(...), user: User = Depends(g
 
 @router.post("/assistant/file")
 async def send_chat_file(file: UploadFile = File(...), user: User = Depends(get_current_user)):
+    limit_uploads(user)
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in {".pdf", ".docx"}:
         raise HTTPException(status_code=422, detail="Поддерживаются только PDF и DOCX")
@@ -368,7 +390,7 @@ async def send_chat_file(file: UploadFile = File(...), user: User = Depends(get_
     try:
         from services.text_extractors import extract_document
 
-        return {"filename": file.filename, "text": extract_document(str(target))}
+        return {"filename": file.filename, "text": await run_in_threadpool(extract_document, str(target))}
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     finally:

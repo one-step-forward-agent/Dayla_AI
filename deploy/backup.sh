@@ -5,10 +5,14 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+# Dumps contain emails, password hashes and encrypted credentials: owner-only access
+umask 077
+
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/dayla}"
 KEEP_DAYS="${KEEP_DAYS:-14}"
 
 mkdir -p "$BACKUP_DIR"
+chmod 700 "$BACKUP_DIR"
 target="$BACKUP_DIR/dayla-$(date +%Y%m%d-%H%M%S).sql.gz"
 
 docker compose -f docker-compose.prod.yml exec -T db \

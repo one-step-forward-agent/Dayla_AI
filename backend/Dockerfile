@@ -19,6 +19,7 @@ RUN pip install --upgrade pip \
 COPY app ./app
 COPY services ./services
 COPY alembic ./alembic
+COPY certs ./certs
 COPY alembic.ini .
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
