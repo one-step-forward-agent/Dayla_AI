@@ -1,0 +1,86 @@
+# Production stack for an Ubuntu server (see DEPLOY.md).
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Host nginx terminates HTTPS for dayla.stxddd.ru and proxies to the frontend on 127.0.0.1:8080.
+# Only that port is published; Postgres, the API and the bot stay on the internal Docker network.
+x-db-url: &db-url postgresql+asyncpg://${POSTGRES_USER:-focus_day}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-focus_day}
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-focus_day}
+      POSTGRES_USER: ${POSTGRES_USER:-focus_day}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    logging: *logging
+
+  app:
+    build: ./backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      APP_ENV: production
+      DATABASE_URL: *db-url
+      STORAGE_PATH: /app/storage
+      BOT_API_TOKEN: ${BOT_API_TOKEN:?set BOT_API_TOKEN in .env}
+      COOKIE_SECURE: "true"
+      PUBLIC_APP_URL: https://${DOMAIN:-dayla.stxddd.ru}
+      GOOGLE_REDIRECT_URI: https://${DOMAIN:-dayla.stxddd.ru}/auth/google/callback
+      # The API is reachable only from the frontend's nginx on the internal network
+      FORWARDED_ALLOW_IPS: "*"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - app_storage:/app/storage
+      - ./deploy/certs:/certs:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    logging: *logging
+
+  bot:
+    build: ./tg_bot
+    restart: unless-stopped
+    env_file:
+      - ./tg_bot/.env
+    environment:
+      BACKEND_URL: http://app:8000
+      BOT_API_TOKEN: ${BOT_API_TOKEN:?set BOT_API_TOKEN in .env}
+    depends_on:
+      app:
+        condition: service_healthy
+    logging: *logging
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://app:8000
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
+    logging: *logging
+
+volumes:
+  postgres_data:
+  app_storage:

@@ -50,7 +50,7 @@ async def list_integrations(user: User = Depends(get_current_user), session: Asy
 async def connect_integration(slug: str, payload: IntegrationConnect, user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
     provider_class = _provider_class(slug)
     if provider_class.auth_type == "oauth":
-        return {"authorization_url": google_authorization_url(user.id)}
+        return {"authorization_url": google_authorization_url(user.id, payload.return_to)}
     integration = await _integration(session, user, slug)
     previous_secrets = decrypt_json(integration.credentials_encrypted) if integration else {}
     values = {**previous_secrets, **{key: value for key, value in payload.values.items() if value not in (None, "")}}

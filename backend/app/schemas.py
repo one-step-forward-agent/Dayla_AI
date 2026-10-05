@@ -107,6 +107,8 @@ class IntegrationRead(BaseModel):
 
 class IntegrationConnect(BaseModel):
     values: dict = Field(default_factory=dict, max_length=20)
+    # Same-site path to come back to after an OAuth provider (e.g. the onboarding step)
+    return_to: str | None = Field(default=None, max_length=300)
 
 
 class EventLinkRead(BaseModel):

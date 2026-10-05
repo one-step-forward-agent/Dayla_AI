@@ -25,3 +25,6 @@ Thumbs.db
 
 # Generated API schema (served live at /openapi.json)
 openapi.json
+
+# GigaChat CA bundle on the server
+deploy/certs/*.pem

@@ -162,7 +162,7 @@ const LoginPage: React.FC = () => {
       <p className="mt-5 text-center text-sm text-gray-600 dark:text-gray-400">
         Нет аккаунта?{' '}
         <Link
-          to="/register"
+          to={searchParams.get('next') ? `/register?next=${encodeURIComponent(searchParams.get('next')!)}` : "/register"}
           className={cn(
             "group relative inline-flex items-center gap-1",
             "font-medium text-sky-600 dark:text-sky-400",

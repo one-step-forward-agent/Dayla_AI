@@ -181,13 +181,23 @@ async def logout_all(user: User = Depends(get_current_user), session: AsyncSessi
     return _logout_response()
 
 
-def _oauth_state(user_id: int) -> str:
-    payload = urlsafe_b64encode(json.dumps({"user_id": user_id, "expires": int(datetime.now(timezone.utc).timestamp()) + 600}).encode()).decode()
+def safe_return_path(path: str | None) -> str | None:
+    """Only same-site relative paths are allowed as OAuth return targets (no open redirects)."""
+    if not path or len(path) > 300 or not path.startswith("/") or path.startswith("//") or "\\" in path:
+        return None
+    return path
+
+
+def _oauth_state(user_id: int, return_to: str | None = None) -> str:
+    data = {"user_id": user_id, "expires": int(datetime.now(timezone.utc).timestamp()) + 600}
+    if safe_return_path(return_to):
+        data["return_to"] = return_to
+    payload = urlsafe_b64encode(json.dumps(data).encode()).decode()
     signature = hmac.new(settings.secret_key.encode(), payload.encode(), hashlib.sha256).hexdigest()
     return f"{payload}.{signature}"
 
 
-def _validate_oauth_state(state: str) -> int:
+def _validate_oauth_state(state: str) -> tuple[int, str | None]:
     try:
         payload, signature = state.split(".", 1)
         expected = hmac.new(settings.secret_key.encode(), payload.encode(), hashlib.sha256).hexdigest()
@@ -196,12 +206,12 @@ def _validate_oauth_state(state: str) -> int:
         data = json.loads(urlsafe_b64decode(payload.encode()))
         if int(data["expires"]) < int(datetime.now(timezone.utc).timestamp()):
             raise ValueError
-        return int(data["user_id"])
+        return int(data["user_id"]), safe_return_path(data.get("return_to"))
     except (ValueError, KeyError, TypeError, json.JSONDecodeError):
         raise HTTPException(status_code=400, detail="Invalid or expired OAuth state") from None
 
 
-def google_authorization_url(user_id: int) -> str:
+def google_authorization_url(user_id: int, return_to: str | None = None) -> str:
     if not settings.google_client_id:
         raise HTTPException(status_code=503, detail="Google OAuth is not configured")
     query = urlencode(
@@ -212,7 +222,7 @@ def google_authorization_url(user_id: int) -> str:
             "scope": "openid email profile https://www.googleapis.com/auth/calendar",
             "access_type": "offline",
             "prompt": "select_account consent",
-            "state": _oauth_state(user_id),
+            "state": _oauth_state(user_id, return_to),
         }
     )
     return f"https://accounts.google.com/o/oauth2/v2/auth?{query}"
@@ -236,7 +246,7 @@ async def google_callback(
         raise HTTPException(status_code=400, detail="Missing OAuth authorization code")
     if not settings.google_client_id or not settings.google_client_secret:
         raise HTTPException(status_code=503, detail="Google OAuth is not configured")
-    user_id = _validate_oauth_state(state)
+    user_id, return_to = _validate_oauth_state(state)
     async with httpx.AsyncClient(timeout=15) as client:
         response = await client.post(
             "https://oauth2.googleapis.com/token",
@@ -292,6 +302,9 @@ async def google_callback(
     if not google_calendar:
         session.add(Calendar(user_id=user_id, integration_id=integration.id, name="Google Calendar", provider="google", external_id="primary", timezone="UTC"))
     await session.commit()
+    if return_to:
+        separator = "&" if "?" in return_to else "?"
+        return RedirectResponse(url=f"{return_to}{separator}connected=google", status_code=303)
     return RedirectResponse(url="/?connected=google", status_code=303)
 
 

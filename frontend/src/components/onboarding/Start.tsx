@@ -1313,7 +1313,8 @@ const Hero: React.FC<{ onStart: () => void }> = ({ onStart }) => (
             type="button"
             onClick={onStart}
             scaleAmount={1.2}
-            className="text-eyebrow px-8"
+            size="lg"
+            className="text-eyebrow h-14 px-10 text-base md:text-lg font-semibold"
           >
             Начать бесплатно
             <ArrowRight size={18} className="ml-1" aria-hidden="true" />

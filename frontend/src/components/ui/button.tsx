@@ -110,6 +110,7 @@ const InteractiveButton = forwardRef<HTMLButtonElement, InteractiveButtonProps>(
     ref
   ) => {
     const gradientId = React.useId();
+    const sheenId = `${gradientId}-sheen`;
     const mouseX = useRef(50);
     const mouseY = useRef(50);
 
@@ -127,7 +128,7 @@ const InteractiveButton = forwardRef<HTMLButtonElement, InteractiveButtonProps>(
     const CENTER_Y = 50;
 
     const HALF_WIDTH = 50;
-    const HALF_HEIGHT = 32;
+    const HALF_HEIGHT = 47;
 
     const SQUIRCLE_POWER = 4;
 
@@ -299,6 +300,7 @@ const InteractiveButton = forwardRef<HTMLButtonElement, InteractiveButtonProps>(
           h-full
           pointer-events-none
           overflow-visible
+          drop-shadow-[0_8px_18px_rgba(79,70,229,0.35)]
         "
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
@@ -316,9 +318,16 @@ const InteractiveButton = forwardRef<HTMLButtonElement, InteractiveButtonProps>(
               <stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
             ))}
           </radialGradient>
+          <linearGradient id={sheenId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.38" />
+            <stop offset="45%" stopColor="#ffffff" stopOpacity="0.08" />
+            <stop offset="55%" stopColor="#000000" stopOpacity="0" />
+            <stop offset="100%" stopColor="#1e1b4b" stopOpacity="0.22" />
+          </linearGradient>
         </defs>
 
         <path d={buttonPath} fill={`url(#${gradientId})`} />
+        <path d={buttonPath} fill={`url(#${sheenId})`} />
       </svg>
     );
 

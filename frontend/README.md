@@ -1,7 +1,7 @@
 # Dayla frontend
 
 One React app for the whole site: the public landing, onboarding, sign-in and the product itself.
-It is served by nginx in Docker (and on Amvera), with the backend proxied on the same origin.
+It is served by nginx in Docker (behind the host nginx in production, see `DEPLOY.md`), with the backend proxied on the same origin.
 
 | Path | What it is | Code |
 | --- | --- | --- |

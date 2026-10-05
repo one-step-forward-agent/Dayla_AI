@@ -37,7 +37,7 @@ Set `BACKEND_URL` in `frontend/.env` if the backend is not on `127.0.0.1:8000`.
 See [`frontend/README.md`](frontend/README.md), [`backend/README.md`](backend/README.md) and
 [`tg_bot/README.md`](tg_bot/README.md) for details.
 
-## Deployment and security
+## Deployment
 
-- [`amvera.md`](amvera.md): deploying to Amvera (managed PostgreSQL plus three Docker projects).
-- [`SECURITY_AUDIT.md`](SECURITY_AUDIT.md): security review findings and the production checklist.
+- [`DEPLOY.md`](DEPLOY.md): deploying to an Ubuntu server at https://dayla.stxddd.ru
+  (`docker-compose.prod.yml`, host nginx + Let's Encrypt, backups).

@@ -130,8 +130,8 @@ export const api = {
   },
   integrations: {
     list: () => request<Integration[]>("/api/integrations"),
-    connect: (slug: string, values: Record<string, unknown>) =>
-      request<IntegrationConnection | { authorization_url: string }>(`/api/integrations/${slug}/connect`, json("POST", { values })),
+    connect: (slug: string, values: Record<string, unknown>, returnTo?: string) =>
+      request<IntegrationConnection | { authorization_url: string }>(`/api/integrations/${slug}/connect`, json("POST", { values, return_to: returnTo })),
     test: (slug: string) => request<{ status: string; account: string }>(`/api/integrations/${slug}/test`, { method: "POST" }),
     sync: (slug: string) => request<SyncResult>(`/api/integrations/${slug}/sync`, { method: "POST" }),
     exportEvent: (slug: string, eventId: number) => request<EventLink>(`/api/integrations/${slug}/export/${eventId}`, { method: "POST" }),

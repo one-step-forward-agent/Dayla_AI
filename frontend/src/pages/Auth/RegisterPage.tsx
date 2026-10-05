@@ -51,8 +51,11 @@ const RegisterPage: React.FC = () => {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       await register({ email, password, name: username, timezone });
       sendMetricGoal("registration_success");
-      await applyOnboarding();
-      navigate(safeNext(searchParams.get("next")), { replace: true });
+      const next = safeNext(searchParams.get("next"));
+      // Registering mid-onboarding (e.g. to connect integrations) keeps the answers;
+      // the last onboarding step applies them.
+      if (!next.startsWith("/onboarding")) await applyOnboarding();
+      navigate(next, { replace: true });
     } catch {
     }
   };
@@ -298,7 +301,7 @@ const RegisterPage: React.FC = () => {
       <p className="mt-5 text-center text-sm text-gray-600 dark:text-gray-400">
         Уже есть аккаунт?{" "}
         <Link
-          to="/login"
+          to={searchParams.get("next") ? `/login?next=${encodeURIComponent(searchParams.get("next")!)}` : "/login"}
           className={cn(
             "group relative inline-flex items-center gap-1",
             "font-medium text-sky-600 dark:text-sky-400",
