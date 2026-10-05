@@ -7,20 +7,20 @@ backend and one PostgreSQL database.
 | --- | --- |
 | [`frontend/`](frontend) | The whole website in one React app: landing page, onboarding, login/registration, legal pages and the app at `/app` (Today, Calendar, Assistant, Integrations, Settings). Light and dark themes. |
 | [`backend/`](backend) | FastAPI API: cookie/JWT auth, events, GigaChat assistant, integrations (Google Calendar, Apple Calendar, Jira, Notion, Obsidian), reminder engine. |
-| [`tg_bot/`](tg_bot) | aiogram bot: events from text, documents and voice; account linking and delivery of reminders queued by the backend. |
+| [`tg_bot/`](tg_bot) | aiogram bot: chat with Dayla for linked accounts (plans from text, voice and documents, schedule questions, agenda), reminders with snooze. All logic goes through the backend API. |
 
 ## Run locally with Docker (everything)
 
 ```bash
 cp backend/.env.example backend/.env   # fill in SECRET_KEY, Google/GigaChat keys
-cp tg_bot/.env.example tg_bot/.env     # fill in TOKEN and GigaChat keys
+cp tg_bot/.env.example tg_bot/.env     # fill in TOKEN
 docker compose up -d --build
 ```
 
 - Website (landing + app): http://localhost:3000
 - Backend API docs: http://localhost:8000/docs
 
-Compose starts Postgres, runs the backend migrations (they also cover the bot's tables), then
+Compose starts Postgres, runs the backend migrations, then
 starts the backend, the bot and the frontend. Optional overrides (DB password, `BOT_API_TOKEN`)
 go in a root `.env`; see `.env.example`.
 

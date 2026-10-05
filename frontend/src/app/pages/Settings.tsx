@@ -261,6 +261,7 @@ function TelegramSection() {
               <Badge tone="ok">подключён</Badge> {status.data.username ? `@${status.data.username}` : "чат привязан"}
               <span className="muted"> · с {formatDateTime(status.data.linked_at)}</span>
             </p>
+            <p className="muted small">Пишите боту планы обычными словами, голосом или файлом PDF/DOCX — события появятся в календаре. Спросите «что у меня завтра?», чтобы увидеть план.</p>
             <div className="button-row">
               <Button
                 icon="bell"
@@ -291,7 +292,7 @@ function TelegramSection() {
           </div>
         ) : (
           <div className="form">
-            <p className="muted">Привяжите Telegram, чтобы получать напоминания и план дня.</p>
+            <p className="muted">Привяжите Telegram, чтобы планировать в чате с Dayla: пишите или надиктовывайте планы, спрашивайте о расписании и получайте напоминания и план на утро.</p>
             {link ? (
               <div className="link-code">
                 {link.deep_link && (

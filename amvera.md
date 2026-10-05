@@ -48,14 +48,15 @@ You also need: the Telegram bot token from @BotFather, the GigaChat authorizatio
    (`focus_day`), user and a long password.
 2. Open the project info and note the **internal hostname of the read-write instance**
    (it looks like `amvera-<user>-cnpg-dayla-db-rw`).
-3. Build the connection string used by the backend and the bot:
+3. Build the connection string used by the backend:
 
    ```
    postgresql+asyncpg://<db-user>:<db-password>@amvera-<user>-cnpg-dayla-db-rw:5432/focus_day
    ```
 
    URL-encode the password if it contains `@ : / ? # %` etc. Plain `postgres://` URLs are also
-   accepted; both services convert them to `postgresql+asyncpg://`.
+   accepted and converted to `postgresql+asyncpg://`. Only the backend connects to the
+   database; the bot talks to the backend's API.
 
 ## 3. Create the three application projects and push the code
 
@@ -101,6 +102,7 @@ Set them in the project's **Variables** section. Mark everything marked "secret"
 | `SBER_SCOPE` | `GIGACHAT_API_PERS` (or your scope) |
 | `GIGACHAT_MODEL` | `GigaChat` |
 | `TELEGRAM_BOT_USERNAME` | bot username without `@` (for the t.me link) |
+| `PUBLIC_APP_URL` | `https://<dayla-web domain>`; enables the bot's "Открыть в Dayla" buttons |
 | `GOOGLE_CLIENT_ID` | optional, Google OAuth |
 | `GOOGLE_CLIENT_SECRET` | optional, Google OAuth (**secret**) |
 | `GOOGLE_REDIRECT_URI` | `https://<dayla-web domain>/auth/google/callback` |
@@ -122,8 +124,7 @@ or shorter than 24 characters, or if `COOKIE_SECURE` is not `true`. The reason i
 the project logs. Swagger (`/docs`, `/openapi.json`) is off; set `ENABLE_DOCS=true` to turn it
 on temporarily.
 
-On every start the container runs `alembic upgrade head` (the backend's migration chain also
-creates the bot's tables) and then starts uvicorn on port 8000.
+On every start the container runs `alembic upgrade head` and then starts uvicorn on port 8000.
 
 > **Upgrading an existing database:** migration `0019` moves Google OAuth tokens into the
 > encrypted credentials column, using the current `INTEGRATIONS_ENCRYPTION_KEY` (or `SECRET_KEY`).
@@ -135,16 +136,13 @@ creates the bot's tables) and then starts uvicorn on port 8000.
 | Variable | Value |
 | --- | --- |
 | `TOKEN` | Telegram bot token (**secret**) |
-| `DATABASE_URL` | same as the backend (**secret**) |
 | `BACKEND_URL` | internal address of the backend, e.g. `http://amvera-<user>-run-dayla-backend:8000` |
 | `BOT_API_TOKEN` | same value as the backend (**secret**) |
-| `SBER_AUTHORIZATION_KEY` | GigaChat key (**secret**) |
-| `SBER_SCOPE` | `GIGACHAT_API_PERS` |
-| `GIGACHAT_MODEL` | `GigaChat` |
 | `NOTIFICATION_POLL_SECONDS` | `20` |
-| `GIGACHAT_CA_BUNDLE` | optional, see step 8 |
 
-Leave `RUN_MIGRATIONS` unset (it defaults to `false`): the database is migrated by the backend.
+The bot has no database access and no GigaChat key: chat messages, schedule questions,
+reminders and account linking all go through the backend's `/internal/bot/*` API. The bot
+itself only transcribes voice messages and extracts text from PDF/DOCX files.
 Run **only one** instance of the bot; two instances using long polling with the same token
 conflict.
 
@@ -190,9 +188,9 @@ certificate (a warning is logged), so a man-in-the-middle could steal the GigaCh
 
 1. Download the CA certificate in PEM format from the official Gosuslugi/Минцифры page
    (`russian_trusted_root_ca.cer`, see GigaChat's documentation on certificates).
-2. Upload it to the persistent storage (`/data`) of `dayla-backend` and `dayla-bot` via the
-   Amvera UI, e.g. as `/data/russian_trusted_root_ca.pem`.
-3. Set `GIGACHAT_CA_BUNDLE=/data/russian_trusted_root_ca.pem` in both projects and restart them.
+2. Upload it to the persistent storage (`/data`) of `dayla-backend` via the Amvera UI, e.g. as
+   `/data/russian_trusted_root_ca.pem`.
+3. Set `GIGACHAT_CA_BUNDLE=/data/russian_trusted_root_ca.pem` on `dayla-backend` and restart it.
 
 If the path is wrong, GigaChat requests fail with an SSL error in the logs. Remove the
 variable to go back to the previous behaviour.
@@ -206,7 +204,9 @@ variable to go back to the previous behaviour.
    in `/app`, and the first task from onboarding is on tomorrow's agenda.
 4. Settings → Telegram → link the account and press "test reminder"; the bot sends it within
    `NOTIFICATION_POLL_SECONDS`.
-5. `dayla-bot` logs have no `401 Invalid bot token` (that means the `BOT_API_TOKEN` values differ).
+5. Write the bot a plan, e.g. "завтра в 15:00 созвон", then ask "что у меня завтра?". The event
+   appears in the bot's reply and in the web calendar.
+6. `dayla-bot` logs have no `401 Invalid bot token` (that means the `BOT_API_TOKEN` values differ).
 
 ## Troubleshooting
 
@@ -217,6 +217,8 @@ variable to go back to the previous behaviour.
 | nginx exits with `host not found in upstream` | The backend hostname in `BACKEND_URL` doesn't resolve; check it in the backend's info page. |
 | Login works but you're logged out immediately | Site opened over plain HTTP; `COOKIE_SECURE=true` cookies need HTTPS. |
 | Bot: `Telegram chat is not linked` / `401` | `BOT_API_TOKEN` differs between bot and backend, or wrong `BACKEND_URL`. |
+| Bot answers "подключите аккаунт" after linking | The bot's `BACKEND_URL` points to a different backend than the site. |
+| No "Открыть в Dayla" button under bot replies | `PUBLIC_APP_URL` is empty or not `https://` (Telegram rejects other links). |
 | Bot: `TelegramConflictError` | Two bot instances (or a local bot) are polling with the same token. |
 | Integration error "address points to the internal network" | Jira/CalDAV/Obsidian URL resolves to a private IP. This is blocked in production (see `SECURITY_AUDIT.md`). Obsidian's Local REST API on `127.0.0.1` can't work from a cloud server anyway. |
 | Uploaded files disappear after redeploy | `STORAGE_PATH` isn't under `/data`. |

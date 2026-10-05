@@ -56,6 +56,7 @@ Copy `.env.example` to `.env` and fill in the values:
 | `INTEGRATIONS_ENCRYPTION_KEY` | Fernet key for integration credentials; derived from `SECRET_KEY` if empty |
 | `BOT_API_TOKEN` | Shared secret for the bot's `/internal/bot/*` API (same value in `tg_bot/.env`) |
 | `TELEGRAM_BOT_USERNAME` | Bot username, used for the `t.me/<bot>?start=<code>` linking link |
+| `PUBLIC_APP_URL` | Public `https://` address of the site; the bot links events to it with "Открыть в Dayla" buttons (hidden when empty) |
 | `DEFAULT_TIMEZONE` | Fallback user timezone (default `Europe/Moscow`) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth client |
 | `GOOGLE_REDIRECT_URI` | OAuth callback, must end with `/auth/google/callback` |
@@ -75,7 +76,7 @@ From the repository root:
 docker compose up -d --build
 ```
 
-Backend and bot share one database. Only the backend runs migrations, and the bot starts after the backend is healthy. `BOT_API_TOKEN` and the URLs between services are set in the root `docker-compose.yml`. The bot's username for the linking link comes from the bot token (`getMe`) unless `TELEGRAM_BOT_USERNAME` is set.
+Only the backend uses the database and GigaChat; the bot calls the backend's `/internal/bot/*` API and starts after the backend is healthy. `BOT_API_TOKEN` and the URLs between services are set in the root `docker-compose.yml`. The bot's username for the linking link comes from the bot token (`getMe`) unless `TELEGRAM_BOT_USERNAME` is set.
 
 ### Backend only (Docker Compose)
 
