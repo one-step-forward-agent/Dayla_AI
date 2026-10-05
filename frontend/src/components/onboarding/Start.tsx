@@ -1312,26 +1312,29 @@ const Hero: React.FC<{ onStart: () => void }> = ({ onStart }) => (
           <InteractiveButton
             type="button"
             onClick={onStart}
-            scaleAmount={1.2}
-            size="lg"
-            className="text-eyebrow h-14 px-10 text-base md:text-lg font-semibold"
+            scaleAmount={1}
+            className="h-14 rounded-full px-9 text-base font-semibold"
           >
             Начать бесплатно
-            <ArrowRight size={18} className="ml-1" aria-hidden="true" />
+            <ArrowRight size={18} aria-hidden="true" />
           </InteractiveButton>
 
-          <Button
+          <button
             type="button"
-            variant="outline"
             onClick={() =>
               document.getElementById("usecases")?.scrollIntoView({ behavior: "smooth" })
             }
-            className="dark:text-white dark"
+            className={cn(
+              "inline-flex h-14 items-center justify-center rounded-full px-8",
+              "text-base font-semibold text-blue-700 dark:text-blue-300",
+              "bg-white/60 dark:bg-white/[0.06] backdrop-blur-md",
+              "ring-1 ring-blue-200/80 dark:ring-white/15",
+              "hover:bg-white/90 dark:hover:bg-white/10 transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            )}
           >
-            <p className="text-eyebrow text-blue-600 dark:text-blue-400 mb-2">
-                Как это работает
-            </p>
-          </Button>
+            Как это работает
+          </button>
         </div>
 
       </div>

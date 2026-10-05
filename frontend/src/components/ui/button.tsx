@@ -124,17 +124,29 @@ const InteractiveButton = forwardRef<HTMLButtonElement, InteractiveButtonProps>(
 
     const isDisabled = disabled || isLoading;
 
-    const CENTER_X = 50;
-    const CENTER_Y = 50;
+    // The shape is drawn in real pixels (a pill with radius = height / 2), so it never
+    // gets stretched on wide buttons; on hover its edges bulge towards the cursor.
+    const nodeRef = useRef<HTMLElement | null>(null);
+    const [box, setBox] = useState({ width: 0, height: 0 });
 
-    const HALF_WIDTH = 50;
-    const HALF_HEIGHT = 47;
+    useEffect(() => {
+      const node = nodeRef.current;
+      if (!node) return;
+      const measure = () => setBox({ width: node.offsetWidth, height: node.offsetHeight });
+      measure();
+      const observer = new ResizeObserver(measure);
+      observer.observe(node);
+      return () => observer.disconnect();
+    }, []);
 
-    const SQUIRCLE_POWER = 4;
-
-    const strength = scaleAmount * 20;
-
-    const radius = 25;
+    const setRefs = useCallback(
+      (node: HTMLElement | null) => {
+        nodeRef.current = node;
+        if (typeof ref === "function") ref(node as HTMLButtonElement | null);
+        else if (ref) ref.current = node as HTMLButtonElement | null;
+      },
+      [ref]
+    );
 
     const startAnimation = useCallback(() => {
       if (animationFrame.current !== null) {
@@ -206,90 +218,44 @@ const InteractiveButton = forwardRef<HTMLButtonElement, InteractiveButtonProps>(
       startAnimation();
     };
 
-    const superellipsePoint = (t: number) => {
-      const cos = Math.cos(t);
-      const sin = Math.sin(t);
+    const { width, height } = box;
+    const pillRadius = height / 2;
+    const bulge = scaleAmount * height * 0.15;
+    const influenceRadius = height * 1.6;
+    const cursorX = (mouseX.current / 100) * width;
 
-      const signX = Math.sign(cos);
-      const signY = Math.sign(sin);
-
-      const absCos = Math.abs(cos);
-      const absSin = Math.abs(sin);
-
-      const x =
-        CENTER_X +
-        signX *
-          Math.pow(
-            absCos,
-            2 / SQUIRCLE_POWER
-          ) *
-          HALF_WIDTH;
-
-      let y =
-        CENTER_Y +
-        signY *
-          Math.pow(
-            absSin,
-            2 / SQUIRCLE_POWER
-          ) *
-          HALF_HEIGHT;
-
-      const distance =
-        Math.abs(x - mouseX.current);
-
-      let influence =
-        1 - distance / radius;
-
-      influence = Math.max(
-        0,
-        Math.min(1, influence)
-      );
-
-      influence =
-        influence *
-        influence *
-        (3 - 2 * influence);
-
-      const verticalFactor =
-        Math.pow(absSin, 0.5);
-
-      const deformation =
-        influence *
-        verticalFactor *
-        strength *
-        animationProgress.current;
-
-      if (y < CENTER_Y) {
-        y -= deformation;
-      } else {
-        y += deformation;
-      }
-
-      return {
-        x,
-        y,
-      };
+    const deform = (x: number, y: number) => {
+      let influence = Math.max(0, Math.min(1, 1 - Math.abs(x - cursorX) / influenceRadius));
+      influence = influence * influence * (3 - 2 * influence);
+      const edgeFactor = pillRadius ? Math.abs(y - pillRadius) / pillRadius : 0;
+      const offset = influence * edgeFactor * bulge * animationProgress.current;
+      return { x, y: y < pillRadius ? y - offset : y + offset };
     };
 
-    const points = Array.from(
-      { length: 121 },
-      (_, index) => {
-        const t =
-          (index / 120) *
-          Math.PI *
-          2;
-
-        return superellipsePoint(t);
+    const pillPoints = (): Array<{ x: number; y: number }> => {
+      if (!width || !height) return [];
+      const left = pillRadius;
+      const right = Math.max(pillRadius, width - pillRadius);
+      const EDGE = 48;
+      const ARC = 24;
+      const result: Array<{ x: number; y: number }> = [];
+      for (let i = 0; i <= EDGE; i++) result.push({ x: left + ((right - left) * i) / EDGE, y: 0 });
+      for (let i = 1; i < ARC; i++) {
+        const angle = -Math.PI / 2 + (Math.PI * i) / ARC;
+        result.push({ x: right + pillRadius * Math.cos(angle), y: pillRadius + pillRadius * Math.sin(angle) });
       }
-    );
+      for (let i = 0; i <= EDGE; i++) result.push({ x: right - ((right - left) * i) / EDGE, y: height });
+      for (let i = 1; i < ARC; i++) {
+        const angle = Math.PI / 2 + (Math.PI * i) / ARC;
+        result.push({ x: left + pillRadius * Math.cos(angle), y: pillRadius + pillRadius * Math.sin(angle) });
+      }
+      return result.map((point) => deform(point.x, point.y));
+    };
 
-    const buttonPath =
-      points
-        .map(
-          (point, index) =>
-            `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`
-        )
-        .join(" ") + " Z";
+    const points = pillPoints();
+    const buttonPath = points.length
+      ? points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ") + " Z"
+      : "";
 
     const buttonBackground = (
       <svg
@@ -302,16 +268,15 @@ const InteractiveButton = forwardRef<HTMLButtonElement, InteractiveButtonProps>(
           overflow-visible
           drop-shadow-[0_8px_18px_rgba(79,70,229,0.35)]
         "
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
+        viewBox={`0 0 ${width || 1} ${height || 1}`}
         aria-hidden="true"
       >
         <defs>
           <radialGradient
             id={gradientId}
             gradientUnits="userSpaceOnUse"
-            cx={`${mouseX.current}`}
-            cy={`${mouseY.current}`}
+            cx={cursorX}
+            cy={(mouseY.current / 100) * height}
             r={glowRadius}
           >
             {gradientStops.map((stop) => (
@@ -326,8 +291,8 @@ const InteractiveButton = forwardRef<HTMLButtonElement, InteractiveButtonProps>(
           </linearGradient>
         </defs>
 
-        <path d={buttonPath} fill={`url(#${gradientId})`} />
-        <path d={buttonPath} fill={`url(#${sheenId})`} />
+        {buttonPath && <path d={buttonPath} fill={`url(#${gradientId})`} />}
+        {buttonPath && <path d={buttonPath} fill={`url(#${sheenId})`} />}
       </svg>
     );
 
@@ -386,7 +351,7 @@ const InteractiveButton = forwardRef<HTMLButtonElement, InteractiveButtonProps>(
     );
 
     const sharedProps = {
-      ref,
+      ref: setRefs,
 
       onMouseMove: handleMouseMove,
 
