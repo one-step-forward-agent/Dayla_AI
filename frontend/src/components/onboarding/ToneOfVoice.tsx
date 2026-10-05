@@ -43,7 +43,7 @@ const OPTIONS: ToneOption[] = [
     tintRing: "ring-pink-200/60 dark:ring-pink-400/20",
     tintActiveBg:       "bg-pink-500",
     tintActiveRing:     "ring-pink-400/70",
-    tintActiveShadow:   "shadow-[0_4px_14px_rgba(236,72,153,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow:   "shadow-[0_4px_14px_rgba(236,72,153,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(236,72,153,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
     tintGlow:           "from-pink-400/60 to-rose-500/40",
     tintActiveCardRing: "ring-pink-400/60 dark:ring-pink-400/50",
   },
@@ -57,7 +57,7 @@ const OPTIONS: ToneOption[] = [
     tintRing: "ring-slate-200/60 dark:ring-slate-400/20",
     tintActiveBg:       "bg-slate-600",
     tintActiveRing:     "ring-slate-400/70",
-    tintActiveShadow:   "shadow-[0_4px_14px_rgba(71,85,105,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow:   "shadow-[0_4px_14px_rgba(71,85,105,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(71,85,105,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
     tintGlow:           "from-slate-400/60 to-slate-500/40",
     tintActiveCardRing: "ring-slate-400/60 dark:ring-slate-400/50",
   },
@@ -71,7 +71,7 @@ const OPTIONS: ToneOption[] = [
     tintRing: "ring-amber-200/60 dark:ring-amber-400/20",
     tintActiveBg:       "bg-amber-500",
     tintActiveRing:     "ring-amber-400/70",
-    tintActiveShadow:   "shadow-[0_4px_14px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow:   "shadow-[0_4px_14px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
     tintGlow:           "from-amber-400/60 to-orange-500/40",
     tintActiveCardRing: "ring-amber-400/60 dark:ring-amber-400/50",
   },
@@ -85,7 +85,7 @@ const OPTIONS: ToneOption[] = [
     tintRing: "ring-rose-200/60 dark:ring-rose-400/20",
     tintActiveBg:       "bg-rose-600",
     tintActiveRing:     "ring-rose-500/70",
-    tintActiveShadow:   "shadow-[0_4px_14px_rgba(225,29,72,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow:   "shadow-[0_4px_14px_rgba(225,29,72,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(225,29,72,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
     tintGlow:           "from-rose-400/60 to-red-500/40",
     tintActiveCardRing: "ring-rose-500/60 dark:ring-rose-400/50",
   },
@@ -154,7 +154,7 @@ export const ToneOfVoice: React.FC = () => {
                   G.surface,
                   active && [
                     `ring-2 ${opt.tintActiveCardRing}`,
-                    "shadow-[0_12px_40px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(255,255,255,0.4)]",
+                    "shadow-[0_12px_40px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(255,255,255,0.4)] dark:shadow-[0_12px_40px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(255,255,255,0.06)]",
                   ],
                   "transition-all duration-300",
                   "hover:-translate-y-0.5",
@@ -199,7 +199,7 @@ export const ToneOfVoice: React.FC = () => {
                   >
                     <span
                       aria-hidden="true"
-                      className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent blur-[0.5px]"
+                      className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] blur-[0.5px]"
                     />
                     <Icon size={20} className="relative" />
                   </div>

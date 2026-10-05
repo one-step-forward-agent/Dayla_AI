@@ -227,7 +227,7 @@ export const GoalsAndHabits: React.FC = () => {
                 >
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent blur-[1px]"
+                    className="pointer-events-none absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent dark:from-white/[0.06] blur-[1px]"
                   />
                   <Plus
                     size={12}
@@ -271,7 +271,7 @@ export const GoalsAndHabits: React.FC = () => {
             <div className={cn("relative overflow-hidden rounded-2xl", G.surface)}>
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-6 top-1 h-16 rounded-full bg-gradient-to-b from-white/60 to-transparent opacity-60 blur-md"
+                className="pointer-events-none absolute inset-x-6 top-1 h-16 rounded-full bg-gradient-to-b from-white/60 to-transparent dark:from-white/[0.06] opacity-60 blur-md"
               />
 
               <div className="relative p-3 sm:p-4">
@@ -339,7 +339,7 @@ export const GoalsAndHabits: React.FC = () => {
                         >
                           <span
                             aria-hidden="true"
-                            className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent blur-[0.5px]"
+                            className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] blur-[0.5px]"
                           />
                           <Icon size={16} className="relative" />
                         </div>
@@ -426,7 +426,7 @@ export const GoalsAndHabits: React.FC = () => {
             >
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-2 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent blur-[1px]"
+                className="pointer-events-none absolute inset-x-2 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] blur-[1px]"
               />
               <Target size={24} className="relative text-blue-500 dark:text-blue-400" />
             </div>

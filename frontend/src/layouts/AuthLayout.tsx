@@ -58,12 +58,12 @@ const AuthLayout: React.FC = () => {
               "bg-gradient-to-br from-sky-500 to-blue-600",
               "flex items-center justify-center text-white",
               "ring-1 ring-white/50",
-              "shadow-[0_8px_32px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.5)]"
+              "shadow-[0_8px_32px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_8px_32px_rgba(59,130,246,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]"
             )}
           >
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-2 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent blur-[1px]"
+              className="pointer-events-none absolute inset-x-2 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] blur-[1px]"
             />
             <Sparkles size={34} className="relative" aria-hidden="true" />
           </div>
@@ -85,7 +85,7 @@ const AuthLayout: React.FC = () => {
                   "relative shrink-0 w-4 h-4 rounded-full overflow-hidden",
                   "bg-gradient-to-br from-sky-400 to-blue-500",
                   "flex items-center justify-center text-white",
-                  "shadow-[0_1px_3px_rgba(59,130,246,0.4),inset_0_1px_0_rgba(255,255,255,0.5)]"
+                  "shadow-[0_1px_3px_rgba(59,130,246,0.4),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_1px_3px_rgba(59,130,246,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]"
                 )}
               >
                 <Check size={10} strokeWidth={3.5} className="relative" />
@@ -100,7 +100,7 @@ const AuthLayout: React.FC = () => {
                   "relative shrink-0 w-4 h-4 rounded-full overflow-hidden",
                   "bg-gradient-to-br from-blue-400 to-sky-600",
                   "flex items-center justify-center text-white",
-                  "shadow-[0_1px_3px_rgba(59,130,246,0.4),inset_0_1px_0_rgba(255,255,255,0.5)]"
+                  "shadow-[0_1px_3px_rgba(59,130,246,0.4),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_1px_3px_rgba(59,130,246,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]"
                 )}
               >
                 <Check size={10} strokeWidth={3.5} className="relative" />

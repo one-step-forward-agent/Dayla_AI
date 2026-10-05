@@ -125,7 +125,7 @@ const LoginPage: React.FC = () => {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-6 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/80 to-transparent opacity-90 blur-[1px]"
+            className="pointer-events-none absolute inset-x-6 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/80 to-transparent dark:from-white/[0.06] opacity-90 blur-[1px]"
           />
 
           <span className="relative inline-flex items-center gap-2">

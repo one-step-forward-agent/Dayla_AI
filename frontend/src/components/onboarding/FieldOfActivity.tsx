@@ -254,7 +254,7 @@ export const FieldOfActivity: React.FC = () => {
                   >
                     <span
                       aria-hidden="true"
-                      className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent blur-[0.5px]"
+                      className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] blur-[0.5px]"
                     />
                     <Icon size={18} className="relative" />
                   </div>
@@ -309,7 +309,7 @@ export const FieldOfActivity: React.FC = () => {
                   "bg-white/60 dark:bg-white/[0.06] text-gray-700 dark:text-gray-300",
                   "ring-1 ring-white/70 dark:ring-white/10",
                   "backdrop-blur-md",
-                  "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)]",
+                  "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.06)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(15,23,42,0.06)]",
                   "transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
                 )}
                 aria-hidden="true"
@@ -372,7 +372,7 @@ export const FieldOfActivity: React.FC = () => {
             <div className={cn("relative overflow-hidden rounded-2xl", G.surface)}>
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-x-6 top-1 h-20 rounded-full bg-gradient-to-b from-white/60 to-transparent opacity-60 blur-md"
+                className="pointer-events-none absolute inset-x-6 top-1 h-20 rounded-full bg-gradient-to-b from-white/60 to-transparent dark:from-white/[0.06] opacity-60 blur-md"
               />
 
               <div className="relative p-3 sm:p-4">
@@ -429,7 +429,7 @@ export const FieldOfActivity: React.FC = () => {
                           className={cn(
                             "relative shrink-0 w-7 h-7 rounded-full overflow-hidden",
                             "ring-2 ring-white/90 dark:ring-white/20",
-                            "shadow-[0_2px_6px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.5)]",
+                            "shadow-[0_2px_6px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_2px_6px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.06)]",
                             "hover:scale-110 active:scale-95 transition-transform"
                           )}
                           style={{ backgroundColor: s.color }}
@@ -438,7 +438,7 @@ export const FieldOfActivity: React.FC = () => {
                         >
                           <span
                             aria-hidden="true"
-                            className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent blur-[0.5px]"
+                            className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent dark:from-white/[0.06] blur-[0.5px]"
                           />
                         </button>
 

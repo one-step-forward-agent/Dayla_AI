@@ -352,7 +352,7 @@ const IntegrationCard: React.FC<{
         G.surface,
         connected && [
           "ring-2 ring-emerald-500/60 dark:ring-emerald-400/60",
-          "shadow-[0_12px_40px_rgba(16,185,129,0.18),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(255,255,255,0.4)]",
+          "shadow-[0_12px_40px_rgba(16,185,129,0.18),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(255,255,255,0.4)] dark:shadow-[0_12px_40px_rgba(16,185,129,0.18),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(255,255,255,0.06)]",
         ],
         "transition-all duration-300",
         !soon && "hover:-translate-y-0.5 hover:bg-white/70 dark:hover:bg-gray-900/55",
@@ -373,7 +373,7 @@ const IntegrationCard: React.FC<{
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent blur-[0.5px]"
+            className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] blur-[0.5px]"
           />
           <img
             src={i.src}
@@ -549,7 +549,7 @@ const HseScheduleGuide: React.FC<{ open: boolean; onToggle: () => void }> = ({ o
   <div className={cn("relative overflow-hidden rounded-2xl", G.surface)}>
     <span
       aria-hidden="true"
-      className="pointer-events-none absolute inset-x-6 top-1 h-14 rounded-full bg-gradient-to-b from-white/60 to-transparent opacity-60 blur-md"
+      className="pointer-events-none absolute inset-x-6 top-1 h-14 rounded-full bg-gradient-to-b from-white/60 to-transparent dark:from-white/[0.06] opacity-60 blur-md"
     />
 
     <div className="relative p-4 md:p-5">
@@ -560,12 +560,12 @@ const HseScheduleGuide: React.FC<{ open: boolean; onToggle: () => void }> = ({ o
             "relative shrink-0 w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden",
             "bg-emerald-500/15 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
             "ring-1 ring-emerald-400/40 dark:ring-emerald-400/30",
-            "shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_1px_2px_rgba(15,23,42,0.05)]"
+            "shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_1px_2px_rgba(15,23,42,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(15,23,42,0.05)]"
           )}
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent blur-[0.5px]"
+            className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent dark:from-white/[0.06] blur-[0.5px]"
           />
           <GraduationCap size={16} className="relative" />
         </div>

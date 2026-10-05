@@ -264,7 +264,7 @@ const RegisterPage: React.FC = () => {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-6 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/80 to-transparent opacity-90 blur-[1px]"
+            className="pointer-events-none absolute inset-x-6 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/80 to-transparent dark:from-white/[0.06] opacity-90 blur-[1px]"
           />
 
           <span className="relative inline-flex items-center gap-2">
@@ -368,7 +368,7 @@ const ConsentCheckbox: React.FC<ConsentCheckboxProps> = ({
       aria-hidden="true"
       className={cn(
         "pointer-events-none absolute inset-x-3 top-0.5 h-1/2 rounded-full",
-        "bg-gradient-to-b from-white/60 to-transparent blur-[1px]",
+        "bg-gradient-to-b from-white/60 to-transparent dark:from-white/[0.06] blur-[1px]",
         checked ? "opacity-80" : "opacity-40 group-hover:opacity-60",
         "transition-opacity"
       )}
@@ -391,13 +391,13 @@ const ConsentCheckbox: React.FC<ConsentCheckboxProps> = ({
         checked
           ? [
               "bg-sky-500 ring-sky-400/70 text-white",
-              "shadow-[0_2px_8px_rgba(59,130,246,0.4),inset_0_1px_0_rgba(255,255,255,0.5)]",
+              "shadow-[0_2px_8px_rgba(59,130,246,0.4),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_2px_8px_rgba(59,130,246,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]",
               "scale-100",
             ]
           : [
               "bg-white/50 dark:bg-white/[0.05]",
               "ring-white/70 dark:ring-white/15",
-              "shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]",
+              "shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
               "scale-95",
               "group-hover:ring-sky-400/50",
             ]
@@ -405,7 +405,7 @@ const ConsentCheckbox: React.FC<ConsentCheckboxProps> = ({
     >
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0.5 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent blur-[0.5px]"
+        className="pointer-events-none absolute inset-x-0.5 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] blur-[0.5px]"
       />
       {checked && (
         <Check size={12} strokeWidth={3} className="relative" />

@@ -56,7 +56,10 @@ services:
       start_period: 30s
     logging: *logging
 
+  # The Telegram bot. Runs only with --profile bot (bot on this server);
+  # when the bot is hosted on Amvera, leave it off (DEPLOY.md, "Bot on Amvera").
   bot:
+    profiles: ["bot"]
     build: ./tg_bot
     restart: unless-stopped
     env_file:

@@ -41,7 +41,7 @@ const OPTIONS: Option[] = [
     tintRing: "ring-amber-200/60 dark:ring-amber-400/20",
     tintActiveBg:     "bg-amber-500",
     tintActiveRing:   "ring-amber-400/70",
-    tintActiveShadow: "shadow-[0_4px_14px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow: "shadow-[0_4px_14px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
     tintGlow:         "from-amber-400/60 to-orange-500/40",
   },
   {
@@ -54,7 +54,7 @@ const OPTIONS: Option[] = [
     tintRing: "ring-sky-200/60 dark:ring-sky-400/20",
     tintActiveBg:     "bg-sky-500",
     tintActiveRing:   "ring-sky-400/70",
-    tintActiveShadow: "shadow-[0_4px_14px_rgba(14,165,233,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow: "shadow-[0_4px_14px_rgba(14,165,233,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(14,165,233,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
     tintGlow:         "from-sky-400/60 to-blue-500/40",
   },
   {
@@ -67,7 +67,7 @@ const OPTIONS: Option[] = [
     tintRing: "ring-emerald-200/60 dark:ring-emerald-400/20",
     tintActiveBg:     "bg-emerald-500",
     tintActiveRing:   "ring-emerald-400/70",
-    tintActiveShadow: "shadow-[0_4px_14px_rgba(16,185,129,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow: "shadow-[0_4px_14px_rgba(16,185,129,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(16,185,129,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
     tintGlow:         "from-emerald-400/60 to-teal-500/40",
   },
   {
@@ -80,7 +80,7 @@ const OPTIONS: Option[] = [
     tintRing: "ring-rose-200/60 dark:ring-rose-400/20",
     tintActiveBg:     "bg-rose-500",
     tintActiveRing:   "ring-rose-400/70",
-    tintActiveShadow: "shadow-[0_4px_14px_rgba(244,63,94,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow: "shadow-[0_4px_14px_rgba(244,63,94,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(244,63,94,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
     tintGlow:         "from-rose-400/60 to-pink-500/40",
   },
   {
@@ -93,7 +93,7 @@ const OPTIONS: Option[] = [
     tintRing: "ring-violet-200/60 dark:ring-violet-400/20",
     tintActiveBg:     "bg-violet-500",
     tintActiveRing:   "ring-violet-400/70",
-    tintActiveShadow: "shadow-[0_4px_14px_rgba(139,92,246,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow: "shadow-[0_4px_14px_rgba(139,92,246,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(139,92,246,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
     tintGlow:         "from-violet-400/60 to-purple-500/40",
   },
   {
@@ -106,7 +106,7 @@ const OPTIONS: Option[] = [
     tintRing: "ring-cyan-200/60 dark:ring-cyan-400/20",
     tintActiveBg:     "bg-cyan-500",
     tintActiveRing:   "ring-cyan-400/70",
-    tintActiveShadow: "shadow-[0_4px_14px_rgba(6,182,212,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow: "shadow-[0_4px_14px_rgba(6,182,212,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(6,182,212,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
     tintGlow:         "from-cyan-400/60 to-sky-500/40",
   },
 ];
@@ -184,7 +184,7 @@ export const ForWhatUsing: React.FC = () => {
                   G.surface,
                   active && [
                     `ring-2 ${opt.tintActiveRing}`,
-                    "shadow-[0_12px_40px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(255,255,255,0.4)]",
+                    "shadow-[0_12px_40px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(255,255,255,0.4)] dark:shadow-[0_12px_40px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(255,255,255,0.06)]",
                     ],
                   "transition-all duration-300",
                   "hover:-translate-y-0.5",
@@ -229,7 +229,7 @@ export const ForWhatUsing: React.FC = () => {
                   >
                     <span
                       aria-hidden="true"
-                      className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent blur-[0.5px]"
+                      className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] blur-[0.5px]"
                     />
                     <Icon size={20} className="relative" />
                   </div>
@@ -294,7 +294,7 @@ export const ForWhatUsing: React.FC = () => {
           >
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-6 top-1 h-20 rounded-full bg-gradient-to-b from-white/60 to-transparent opacity-70 blur-md"
+              className="pointer-events-none absolute inset-x-6 top-1 h-20 rounded-full bg-gradient-to-b from-white/60 to-transparent dark:from-white/[0.06] opacity-70 blur-md"
             />
 
             <span
@@ -311,12 +311,12 @@ export const ForWhatUsing: React.FC = () => {
                     "bg-gradient-to-br from-blue-500 to-purple-600",
                     "flex items-center justify-center text-white",
                     "ring-1 ring-white/40",
-                    "shadow-[0_4px_14px_rgba(99,102,241,0.35),inset_0_1px_0_rgba(255,255,255,0.5)]"
+                    "shadow-[0_4px_14px_rgba(99,102,241,0.35),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(99,102,241,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]"
                   )}
                 >
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent blur-[0.5px]"
+                    className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] blur-[0.5px]"
                   />
                   <Sparkles size={18} className="relative" />
                 </div>
@@ -380,7 +380,7 @@ export const ForWhatUsing: React.FC = () => {
                         "bg-white/70 dark:bg-white/15",
                         "backdrop-blur-xl",
                         "ring-1 ring-white/70 dark:ring-white/20",
-                        "shadow-[0_4px_16px_rgba(59,130,246,0.15),inset_0_1px_0_rgba(255,255,255,0.9),inset_0_-1px_0_rgba(255,255,255,0.4)]",
+                        "shadow-[0_4px_16px_rgba(59,130,246,0.15),inset_0_1px_0_rgba(255,255,255,0.9),inset_0_-1px_0_rgba(255,255,255,0.4)] dark:shadow-[0_4px_16px_rgba(59,130,246,0.15),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(255,255,255,0.06)]",
                         "hover:bg-white/85 dark:hover:bg-white/20",
                         "hover:shadow-[0_8px_24px_rgba(59,130,246,0.25),inset_0_1px_0_rgba(255,255,255,1),inset_0_-1px_0_rgba(255,255,255,0.5)]",
                         "transition-all duration-300"
@@ -388,7 +388,7 @@ export const ForWhatUsing: React.FC = () => {
                     >
                       <span
                         aria-hidden="true"
-                        className="pointer-events-none absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/80 to-transparent opacity-90 blur-[1px]"
+                        className="pointer-events-none absolute inset-x-3 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/80 to-transparent dark:from-white/[0.06] opacity-90 blur-[1px]"
                       />
                       <span className="relative inline-flex items-center gap-1.5">
                         Начать

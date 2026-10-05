@@ -120,7 +120,7 @@ export const SuccessAndLearning: React.FC = () => {
               >
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-2 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/80 to-transparent blur-[1px]"
+                  className="pointer-events-none absolute inset-x-2 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/80 to-transparent dark:from-white/[0.06] blur-[1px]"
                 />
                 <PartyPopper size={28} className="relative" />
               </div>
@@ -144,12 +144,12 @@ export const SuccessAndLearning: React.FC = () => {
                     "relative shrink-0 w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden",
                     "bg-emerald-500/15 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
                     "ring-1 ring-emerald-400/40 dark:ring-emerald-400/30",
-                    "shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_1px_2px_rgba(15,23,42,0.05)]"
+                    "shadow-[inset_0_1px_0_rgba(255,255,255,0.5),0_1px_2px_rgba(15,23,42,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(15,23,42,0.05)]"
                   )}
                 >
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent blur-[0.5px]"
+                    className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent dark:from-white/[0.06] blur-[0.5px]"
                   />
                   <Check size={14} strokeWidth={3} className="relative" />
                 </span>
@@ -179,12 +179,12 @@ export const SuccessAndLearning: React.FC = () => {
                           "relative shrink-0 w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden",
                           "bg-white/60 dark:bg-white/[0.06] text-gray-600 dark:text-gray-300",
                           "ring-1 ring-white/70 dark:ring-white/10",
-                          "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.05)]"
+                          "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(15,23,42,0.05)]"
                         )}
                       >
                         <span
                           aria-hidden="true"
-                          className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent blur-[0.5px]"
+                          className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] blur-[0.5px]"
                         />
                         <Icon size={14} className="relative" />
                       </span>
@@ -216,7 +216,7 @@ export const SuccessAndLearning: React.FC = () => {
                           "bg-white/50 dark:bg-white/[0.05]",
                           "backdrop-blur-md",
                           "ring-1 ring-white/60 dark:ring-white/10",
-                          "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.04)]",
+                          "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(15,23,42,0.04)]",
                           "text-xs font-medium text-gray-700 dark:text-gray-300"
                         )}
                       >
@@ -260,7 +260,7 @@ export const SuccessAndLearning: React.FC = () => {
           >
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-6 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/80 to-transparent opacity-90 blur-[1px]"
+              className="pointer-events-none absolute inset-x-6 top-1 h-1/2 rounded-full bg-gradient-to-b from-white/80 to-transparent dark:from-white/[0.06] opacity-90 blur-[1px]"
             />
             <Rocket
               size={18}

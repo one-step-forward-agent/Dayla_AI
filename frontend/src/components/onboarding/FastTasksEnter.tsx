@@ -45,7 +45,7 @@ const REMINDER_OPTIONS: ReminderOption[] = [
     tintRing: "ring-slate-200/60 dark:ring-slate-400/20",
     tintActiveBg:     "bg-slate-600",
     tintActiveRing:   "ring-slate-400/70",
-    tintActiveShadow: "shadow-[0_4px_14px_rgba(71,85,105,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow: "shadow-[0_4px_14px_rgba(71,85,105,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(71,85,105,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
   },
   {
     id: "10m",
@@ -58,7 +58,7 @@ const REMINDER_OPTIONS: ReminderOption[] = [
     tintRing: "ring-cyan-200/60 dark:ring-cyan-400/20",
     tintActiveBg:     "bg-cyan-500",
     tintActiveRing:   "ring-cyan-400/70",
-    tintActiveShadow: "shadow-[0_4px_14px_rgba(6,182,212,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow: "shadow-[0_4px_14px_rgba(6,182,212,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(6,182,212,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
   },
   {
     id: "30m",
@@ -71,7 +71,7 @@ const REMINDER_OPTIONS: ReminderOption[] = [
     tintRing: "ring-blue-200/60 dark:ring-blue-400/20",
     tintActiveBg:     "bg-blue-500",
     tintActiveRing:   "ring-blue-400/70",
-    tintActiveShadow: "shadow-[0_4px_14px_rgba(59,130,246,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow: "shadow-[0_4px_14px_rgba(59,130,246,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(59,130,246,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
   },
   {
     id: "1h",
@@ -84,7 +84,7 @@ const REMINDER_OPTIONS: ReminderOption[] = [
     tintRing: "ring-violet-200/60 dark:ring-violet-400/20",
     tintActiveBg:     "bg-violet-500",
     tintActiveRing:   "ring-violet-400/70",
-    tintActiveShadow: "shadow-[0_4px_14px_rgba(139,92,246,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow: "shadow-[0_4px_14px_rgba(139,92,246,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(139,92,246,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
   },
   {
     id: "1d",
@@ -97,7 +97,7 @@ const REMINDER_OPTIONS: ReminderOption[] = [
     tintRing: "ring-amber-200/60 dark:ring-amber-400/20",
     tintActiveBg:     "bg-amber-500",
     tintActiveRing:   "ring-amber-400/70",
-    tintActiveShadow: "shadow-[0_4px_14px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.5)]",
+    tintActiveShadow: "shadow-[0_4px_14px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.5)] dark:shadow-[0_4px_14px_rgba(245,158,11,0.45),inset_0_1px_0_rgba(255,255,255,0.06)]",
   },
 ];
 
@@ -223,7 +223,7 @@ export const FastTasksEnter: React.FC = () => {
                   >
                     <span
                       aria-hidden="true"
-                      className="pointer-events-none absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent blur-[1px]"
+                      className="pointer-events-none absolute inset-x-2 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/60 to-transparent dark:from-white/[0.06] blur-[1px]"
                     />
 
                     <span
@@ -280,7 +280,7 @@ export const FastTasksEnter: React.FC = () => {
                     G.surface,
                     active && [
                     `ring-2 ${opt.tintActiveRing}`,
-                    "shadow-[0_12px_40px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(255,255,255,0.4)]",
+                    "shadow-[0_12px_40px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.85),inset_0_-1px_0_rgba(255,255,255,0.4)] dark:shadow-[0_12px_40px_rgba(15,23,42,0.15),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(255,255,255,0.06)]",
                     ],
                     "transition-all duration-300",
                     "hover:-translate-y-0.5",
@@ -312,7 +312,7 @@ export const FastTasksEnter: React.FC = () => {
                     >
                     <span
                       aria-hidden="true"
-                      className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent blur-[0.5px]"
+                      className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] blur-[0.5px]"
                     />
                     <Icon size={16} className="relative" />
                   </div>
@@ -328,7 +328,7 @@ export const FastTasksEnter: React.FC = () => {
                         "absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-white",
                         "ring-1 ring-white/60 dark:ring-white/20",
                         opt.tintActiveBg,
-                        "shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
+                        "shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
                         )}
                     >
                         <Check size={10} strokeWidth={3} />
@@ -350,7 +350,7 @@ export const FastTasksEnter: React.FC = () => {
         <div className={cn("relative overflow-hidden rounded-2xl", G.surface)}>
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-6 top-1 h-16 rounded-full bg-gradient-to-b from-white/60 to-transparent opacity-60 blur-md"
+            className="pointer-events-none absolute inset-x-6 top-1 h-16 rounded-full bg-gradient-to-b from-white/60 to-transparent dark:from-white/[0.06] opacity-60 blur-md"
           />
 
           <div className="relative p-4 md:p-5">
@@ -361,12 +361,12 @@ export const FastTasksEnter: React.FC = () => {
                   "relative shrink-0 w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden",
                   "bg-white/60 dark:bg-white/[0.06] text-blue-600 dark:text-blue-300",
                   "ring-1 ring-white/70 dark:ring-white/10",
-                  "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.05)]"
+                  "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(15,23,42,0.05)]"
                 )}
               >
                 <span
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent blur-[0.5px]"
+                  className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] blur-[0.5px]"
                 />
                 <Sparkles size={14} className="relative" />
               </span>
@@ -415,7 +415,7 @@ export const FastTasksEnter: React.FC = () => {
                     "bg-white/50 dark:bg-white/[0.05]",
                     "backdrop-blur-md",
                     "ring-1 ring-white/60 dark:ring-white/10",
-                    "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.04)]",
+                    "shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_1px_2px_rgba(15,23,42,0.04)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(15,23,42,0.04)]",
                     "text-[10px] font-medium text-gray-700 dark:text-gray-300"
                   )}
                 >

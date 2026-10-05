@@ -4,10 +4,13 @@ Target: one Ubuntu 22.04/24.04 server, the site at **https://dayla.stxddd.ru**.
 
 ```
 browser ──HTTPS──▶ host nginx (TLS, Let's Encrypt) ──▶ 127.0.0.1:8080 frontend container
-                                                          (React build, proxies /api /auth /health)
+                                                          (React build, proxies /api /auth /health /internal)
                                                                 │ Docker network
 Telegram ◀── bot container ──▶ app container (FastAPI) ──▶ db container (PostgreSQL 16)
 ```
+
+The bot can run on this server (inside the same compose stack) or on a separate server
+(see [Bot on Amvera](#bot-on-amvera)).
 
 Everything runs from [`docker-compose.prod.yml`](docker-compose.prod.yml). Only the frontend is
 published, and only on `127.0.0.1:8080`; Postgres, the API and the bot are reachable only on the
@@ -63,6 +66,8 @@ CalDAV, Obsidian and Google credentials. If it's lost or changed, users have to 
 
 ```ini
 DOMAIN=dayla.stxddd.ru
+# Run the Telegram bot on this server too. Remove the line if the bot runs on Amvera.
+COMPOSE_PROFILES=bot
 POSTGRES_DB=focus_day
 POSTGRES_USER=focus_day
 POSTGRES_PASSWORD=<generated>
@@ -86,8 +91,11 @@ BOT_API_TOKEN=<generated>
 
 Leave `CORS_ORIGINS`, `ENABLE_DOCS` and `ALLOW_PRIVATE_INTEGRATION_URLS` empty.
 
-**`tg_bot/.env`** (copy from `tg_bot/.env.example`): set `TOKEN` (from @BotFather). `BACKEND_URL`
-and `BOT_API_TOKEN` come from compose.
+**`tg_bot/.env`** (only if the bot runs on this server; copy from `tg_bot/.env.example`): set
+`TOKEN` (from @BotFather). `BACKEND_URL` and `BOT_API_TOKEN` come from compose.
+
+`BOT_API_TOKEN` is not the Telegram token: it's a password you generate, which the bot sends to
+the backend with every request.
 
 ```bash
 chmod 600 .env backend/.env tg_bot/.env
@@ -144,6 +152,63 @@ authorized domains.
    (form in a dialog) and Telegram (opens the bot). Finish onboarding; you land in `/app`.
 3. Settings → Telegram → "test reminder" arrives in the bot.
 4. `docker compose -f docker-compose.prod.yml logs bot` has no `401 Invalid bot token`.
+
+## Bot on Amvera
+
+The bot can run on [Amvera](https://amvera.ru) instead of this server. It only needs HTTPS access
+to `https://dayla.stxddd.ru`: it calls the backend's `/internal/bot/*` API, authenticated with
+`BOT_API_TOKEN` (requests without the right token get `401`). Amvera has no fixed outgoing IP, so
+there is no IP allowlist; keep `BOT_API_TOKEN` long and random. Run **one** bot only: two bots
+polling with the same Telegram token conflict (`TelegramConflictError`).
+
+**On this server**
+
+Remove `COMPOSE_PROFILES=bot` from the root `.env`, then stop the local bot and redeploy (the
+frontend image must be rebuilt so that it forwards `/internal`):
+
+```bash
+docker compose -f docker-compose.prod.yml rm -sf bot
+./deploy/deploy.sh
+```
+
+**On Amvera**
+
+1. Create an application project (e.g. `dayla-bot`), environment **Docker**. `tg_bot/amvera.yml`
+   configures the build; Amvera reads it from the repository root, so push the `tg_bot/` folder
+   as the root of the Amvera repository (commit your changes first):
+   ```bash
+   git remote add amvera-bot https://git.amvera.ru/<amvera-user>/dayla-bot
+   git push amvera-bot "$(git subtree split --prefix tg_bot HEAD)":refs/heads/master --force
+   ```
+   Git asks for your Amvera login and password. Run the same `git push` to update the bot later.
+   (Or upload the contents of `tg_bot/` in the project's Repository tab; `amvera.yml` must be at
+   the top level.)
+2. In the project's **Variables** set (mark the first and third as secrets):
+
+   | Variable | Value |
+   | --- | --- |
+   | `TOKEN` | token from @BotFather |
+   | `BACKEND_URL` | `https://dayla.stxddd.ru` |
+   | `BOT_API_TOKEN` | the same value as `BOT_API_TOKEN` in this server's root `.env` |
+   | `NOTIFICATION_POLL_SECONDS` | `20` |
+
+3. Restart the project after setting the variables and open its logs.
+
+The bot needs no public domain (it uses long polling).
+
+**Check**
+
+- From any machine: `curl -s -o /dev/null -w '%{http_code}\n' -X POST https://dayla.stxddd.ru/internal/bot/notifications/claim`
+  returns `401` (the API is reachable). `200` with HTML or `404` means this server's frontend image
+  is old: run `./deploy/deploy.sh`.
+- Write to the bot; in Settings → Telegram on the site, link the account and send a test reminder.
+
+| Bot log message | Cause |
+| --- | --- |
+| `401 Invalid bot token` | `BOT_API_TOKEN` differs between Amvera and this server's `.env`. |
+| `503 BOT_API_TOKEN is not configured` | The backend on this server has no `BOT_API_TOKEN`. |
+| `TelegramConflictError` | Another copy of the bot (this server's, or a local one) is still running. |
+| Connection errors to `dayla.stxddd.ru` | The site is down or DNS/HTTPS is broken; check `https://dayla.stxddd.ru/health`. |
 
 ## Updates
 

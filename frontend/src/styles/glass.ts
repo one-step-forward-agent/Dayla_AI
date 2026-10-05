@@ -13,7 +13,7 @@ export const glass: Record<"subtle" | "medium" | "strong", GlassPreset> = {
       "dark:shadow-[0_4px_16px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-1px_0_rgba(255,255,255,0.02)]",
     specular:
       "absolute inset-x-3 top-0.5 h-1/3 rounded-full " +
-      "bg-gradient-to-b from-white/60 to-transparent opacity-70 blur-[1px]",
+      "bg-gradient-to-b from-white/60 to-transparent dark:from-white/[0.06] opacity-70 blur-[1px]",
   },
   medium: {
     surface:
@@ -24,7 +24,7 @@ export const glass: Record<"subtle" | "medium" | "strong", GlassPreset> = {
       "dark:shadow-[0_8px_32px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(255,255,255,0.03)]",
     specular:
       "absolute inset-x-3 top-0.5 h-1/2 rounded-full " +
-      "bg-gradient-to-b from-white/70 to-transparent opacity-80 blur-[1px]",
+      "bg-gradient-to-b from-white/70 to-transparent dark:from-white/[0.06] opacity-80 blur-[1px]",
   },
   strong: {
     surface:
@@ -35,6 +35,6 @@ export const glass: Record<"subtle" | "medium" | "strong", GlassPreset> = {
       "dark:shadow-[0_12px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(255,255,255,0.05)]",
     specular:
       "absolute inset-x-4 top-1 h-1/2 rounded-full " +
-      "bg-gradient-to-b from-white/90 to-transparent opacity-100 blur-[1px]",
+      "bg-gradient-to-b from-white/90 to-transparent dark:from-white/[0.06] opacity-100 blur-[1px]",
   },
 };
